@@ -1,0 +1,21 @@
+[Unit]
+Description=BitNet MQTT Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/dakir/makerspace2025
+ExecStart=/usr/bin/python3 /home/dakir/makerspace2025/src/bitnet_runner.py --config /home/dakir/makerspace2025/src/service_config.json service
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=PYTHONPATH=/home/dakir/makerspace2025
+
+[Install]
+WantedBy=multi-user.target
