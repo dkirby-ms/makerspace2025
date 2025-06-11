@@ -4,6 +4,10 @@
 - Use camelCase for variables and functions.
 - Use ALL_CAPS for constants.
 
+## Tools
+- Use step-cli for creating and managing certificates and keys.
+- Use mosquitto for MQTT operations.
+
 ## Response personality
 - Responses should be straightforward and factual.
 - Responses should be concise and to the point.

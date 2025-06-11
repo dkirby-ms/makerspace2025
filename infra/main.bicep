@@ -1,15 +1,18 @@
-@description('Name of the Event Grid topic')
-param eventGridTopicName string = 'Makerspace2025'
+@description('Name of the IoT Hub')
+param iotHubName string = 'makerspace-iot-hub'
 
-@description('Location for the Event Grid topic')
+@description('Location for all resources')
 param location string = resourceGroup().location
 
-module eventGrid 'eventGrid.bicep' = {
-  name: 'eventGridDeployment'
+module iotHub 'iotHub.bicep' = {
+  name: 'iotHubDeployment'
   params: {
-    eventGridTopicName: eventGridTopicName
+    iotHubName: iotHubName
     location: location
   }
 }
 
-output topicEndpoint string = eventGrid.outputs.topicEndpoint
+output iotHubName string = iotHub.outputs.iotHubName
+output iotHubHostName string = iotHub.outputs.iotHubHostName
+output iotHubResourceId string = iotHub.outputs.iotHubResourceId
+output resourceGroupName string = resourceGroup().name
