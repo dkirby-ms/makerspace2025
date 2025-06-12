@@ -58,6 +58,26 @@ Pi Device 1 ←→ MQTT Broker ←→ Pi Device 2
    ./start_service.sh
    ```
 
+## Uninstallation
+
+To completely remove the BitNet MQTT service:
+
+```bash
+./uninstall.sh
+```
+
+The uninstall script will:
+- Stop all running service processes
+- Remove systemd service files (if installed)
+- Optionally remove Python dependencies
+- Clean up log files and temporary files
+- Optionally remove configuration backups
+
+**Stop service only:**
+```bash
+./stop_service.sh
+```
+
 ## Usage
 
 ### Service Commands
