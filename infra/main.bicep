@@ -7,6 +7,12 @@ param eventGridNamespaceName string = 'makerspace-eventgrid'
 @description('Location for all resources')
 param location string = resourceGroup().location
 
+@description('Base64 encoded CA certificate content (optional, can be added later)')
+param caCertificateContent string = ''
+
+@description('Deploy CA certificate (set to false initially, true after certificate generation)')
+param deployCaCertificate bool = false
+
 // IoT Hub deployment disabled - using Event Grid MQTT broker only
 // module iotHub 'iotHub.bicep' = {
 //   name: 'iotHubDeployment'
@@ -21,6 +27,8 @@ module eventGrid 'eventGrid.bicep' = {
   params: {
     eventGridNamespaceName: eventGridNamespaceName
     location: location
+    caCertificateContent: caCertificateContent
+    deployCaCertificate: deployCaCertificate
   }
 }
 
@@ -31,4 +39,6 @@ module eventGrid 'eventGrid.bicep' = {
 output eventGridNamespaceName string = eventGrid.outputs.eventGridNamespaceName
 output eventGridNamespaceId string = eventGrid.outputs.eventGridNamespaceId
 output mqttHostname string = eventGrid.outputs.mqttHostname
+output caCertificateName string = eventGrid.outputs.caCertificateName
+output mqttClientName string = eventGrid.outputs.mqttClientName
 output resourceGroupName string = resourceGroup().name

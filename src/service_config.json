@@ -1,11 +1,11 @@
 {
   "mqtt": {
-    "broker": "localhost",
-    "port": 1883,
-    "topic": "bitnet/chat",
+    "broker": "makerspace-eventgrid-2025.westus2-1.ts.eventgrid.azure.net",
+    "port": 8883,
+    "topic": "devices/bitnet-device/telemetry",
     "keepalive": 60,
-    "use_tls": false,
-    "ca_certs": "ca.crt",
+    "use_tls": true,
+    "ca_certs": "ca-chain.crt",
     "certfile": "client1-authnID.pem",
     "keyfile": "client1-authnID.key",
     "username": "",

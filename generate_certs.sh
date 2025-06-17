@@ -5,9 +5,10 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CERTS_DIR="$SCRIPT_DIR/certs"
-CA_NAME="MqttAppSamplesCA"
-CLIENT_NAME="client1-authnID"
-PROVISIONER_NAME="MqttAppSamplesCAProvisioner"
+CA_NAME="MakerspaceCA"
+CLIENT_AUTHN_ID="client1-authnID"
+CLIENT_NAME="client1"
+PROVISIONER_NAME="Makerspace2025Provisioner"
 
 echo "Generating certificates for MQTT TLS authentication..."
 
@@ -24,7 +25,7 @@ mkdir -p "$CERTS_DIR"
 cd "$CERTS_DIR"
 
 # Initialize step CA if not already done
-if [ ! -d ".step" ]; then
+if [ ! -d ~/.step ]; then
     echo "Initializing Certificate Authority..."
     echo "You will be prompted for a password. Remember this password for the next step."
     step ca init \
@@ -39,50 +40,71 @@ else
     echo "CA already exists, skipping initialization."
 fi
 
-# Generate client certificate
-if [ ! -f "${CLIENT_NAME}.pem" ]; then
-    echo "Generating client certificate..."
+# Generate client certificate with authentication ID
+if [ ! -f "${CLIENT_AUTHN_ID}.pem" ]; then
+    echo "Generating client certificate with authentication ID: $CLIENT_AUTHN_ID"
     echo "Enter the CA password when prompted:"
     step certificate create \
-        "$CLIENT_NAME" \
-        "${CLIENT_NAME}.pem" \
-        "${CLIENT_NAME}.key" \
-        --ca .step/certs/intermediate_ca.crt \
-        --ca-key .step/secrets/intermediate_ca_key \
+        "$CLIENT_AUTHN_ID" \
+        "${CLIENT_AUTHN_ID}.pem" \
+        "${CLIENT_AUTHN_ID}.key" \
+        --ca ~/.step/certs/intermediate_ca.crt \
+        --ca-key ~/.step/secrets/intermediate_ca_key \
         --no-password \
         --insecure \
         --not-after 2400h
     
-    echo "Client certificate generated: ${CLIENT_NAME}.pem"
-    echo "Client private key generated: ${CLIENT_NAME}.key"
+    echo "Client certificate generated: ${CLIENT_AUTHN_ID}.pem"
+    echo "Client private key generated: ${CLIENT_AUTHN_ID}.key"
 else
-    echo "Client certificate already exists: ${CLIENT_NAME}.pem"
+    echo "Client certificate already exists: ${CLIENT_AUTHN_ID}.pem"
 fi
 
-# Generate thumbprint
-echo "Certificate thumbprint:"
-step certificate fingerprint "${CLIENT_NAME}.pem"
+# Generate thumbprint for Azure Event Grid client configuration
+echo "Certificate thumbprint for Azure Event Grid:"
+step certificate fingerprint "${CLIENT_AUTHN_ID}.pem"
 
 # Copy certificates to accessible location
 echo "Copying certificates to main directory..."
-cp "${CLIENT_NAME}.pem" "../${CLIENT_NAME}.pem"
-cp "${CLIENT_NAME}.key" "../${CLIENT_NAME}.key"
-cp ".step/certs/root_ca.crt" "../ca.crt"
+cp "${CLIENT_AUTHN_ID}.pem" "../${CLIENT_AUTHN_ID}.pem"
+cp "${CLIENT_AUTHN_ID}.key" "../${CLIENT_AUTHN_ID}.key"
+cp ~/.step/certs/intermediate_ca.crt "../intermediate_ca.crt"
+cp ~/.step/certs/root_ca.crt "../root_ca.crt"
+
+# Create certificate JSON for Azure deployment
+echo "Creating certificate JSON for Azure deployment..."
+INTERMEDIATE_CERT_B64=$(base64 -w 0 ~/.step/certs/intermediate_ca.crt)
+cat > "../ca-cert.json" << EOF
+{
+    "properties": {
+        "description": "Makerspace CA intermediate certificate for device authentication",
+        "encodedCertificate": "-----BEGIN CERTIFICATE-----
+${INTERMEDIATE_CERT_B64}
+-----END CERTIFICATE-----"
+    }
+}
+EOF
 
 echo ""
 echo "Certificate generation completed successfully!"
 echo ""
 echo "Generated files:"
-echo "  - ${CLIENT_NAME}.pem (client certificate)"
-echo "  - ${CLIENT_NAME}.key (client private key)"
-echo "  - ca.crt (CA certificate)"
+echo "  - ${CLIENT_AUTHN_ID}.pem (client certificate)"
+echo "  - ${CLIENT_AUTHN_ID}.key (client private key)"
+echo "  - intermediate_ca.crt (intermediate CA certificate for Azure upload)"
+echo "  - root_ca.crt (root CA certificate)"
+echo "  - ca-cert.json (CA certificate JSON for Azure CLI deployment)"
 echo ""
-echo "Thumbprint (copy this for Azure Event Grid client configuration):"
-step certificate fingerprint "${CLIENT_NAME}.pem"
+echo "Thumbprint for Azure Event Grid client configuration:"
+step certificate fingerprint "${CLIENT_AUTHN_ID}.pem"
 echo ""
 echo "Next steps:"
-echo "1. Configure your MQTT broker to use these certificates"
-echo "2. Update src/service_config.json with TLS settings:"
-echo "   - Set 'use_tls': true"
-echo "   - Set certificate paths if needed"
-echo "3. If using Azure Event Grid, create a client with the thumbprint above"
+echo "1. Upload intermediate_ca.crt to Azure Event Grid namespace CA certificates"
+echo "2. Create MQTT client in Azure Event Grid with:"
+echo "   - Client name: $CLIENT_NAME"
+echo "   - Authentication name: $CLIENT_AUTHN_ID"
+echo "   - Validation scheme: SubjectMatchesAuthenticationName"
+echo "3. Use ${CLIENT_AUTHN_ID}.pem and ${CLIENT_AUTHN_ID}.key for MQTT client connection"
+echo ""
+echo "Azure CLI command to upload CA certificate:"
+echo "az eventgrid namespace ca-certificate create -g <resource-group> --namespace-name <namespace> -n makerspace-ca --certificate @./ca-cert.json"

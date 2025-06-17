@@ -10,6 +10,12 @@ param sku string = 'Standard'
 @description('Capacity for the Event Grid namespace')
 param capacity int = 1
 
+@description('Base64 encoded CA certificate content (optional, can be added later)')
+param caCertificateContent string = ''
+
+@description('Deploy CA certificate (set to false initially)')
+param deployCaCertificate bool = false
+
 resource eventGridNamespace 'Microsoft.EventGrid/namespaces@2023-12-15-preview' = {
   name: eventGridNamespaceName
   location: location
@@ -39,15 +45,29 @@ resource eventGridNamespace 'Microsoft.EventGrid/namespaces@2023-12-15-preview' 
   }
 }
 
-// Create CA certificate for client authentication - to be created after certificate generation
-// resource caCertificate 'Microsoft.EventGrid/namespaces/caCertificates@2023-12-15-preview' = {
-//   parent: eventGridNamespace
-//   name: 'makerspace-ca'
-//   properties: {
-//     description: 'CA certificate for makerspace devices'
-//     encodedCertificate: '' // Will be populated after certificate creation
-//   }
-// }
+// Create CA certificate for client authentication
+resource caCertificate 'Microsoft.EventGrid/namespaces/caCertificates@2023-12-15-preview' = if (deployCaCertificate && !empty(caCertificateContent)) {
+  parent: eventGridNamespace
+  name: 'makerspace-ca'
+  properties: {
+    description: 'Makerspace CA intermediate certificate for device authentication'
+    encodedCertificate: caCertificateContent
+  }
+}
+
+// Create MQTT client for device authentication
+resource mqttClient 'Microsoft.EventGrid/namespaces/clients@2023-12-15-preview' = {
+  parent: eventGridNamespace
+  name: 'client1'
+  properties: {
+    description: 'MQTT client for makerspace device'
+    authenticationName: 'client1-authnID'
+    clientCertificateAuthentication: {
+      validationScheme: 'SubjectMatchesAuthenticationName'
+    }
+    state: 'Enabled'
+  }
+}
 
 // Create topic space for device communication
 resource deviceTopicSpace 'Microsoft.EventGrid/namespaces/topicSpaces@2023-12-15-preview' = {
@@ -90,5 +110,5 @@ resource subscriberPermissionBinding 'Microsoft.EventGrid/namespaces/permissionB
 output eventGridNamespaceName string = eventGridNamespace.name
 output eventGridNamespaceId string = eventGridNamespace.id
 output mqttHostname string = eventGridNamespace.properties.topicSpacesConfiguration.hostname
-// CA certificate will be created separately after certificate generation
-// output caCertificateName string = caCertificate.name
+output caCertificateName string = deployCaCertificate && !empty(caCertificateContent) ? caCertificate.name : ''
+output mqttClientName string = mqttClient.name
