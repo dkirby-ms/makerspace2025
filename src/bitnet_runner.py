@@ -340,7 +340,20 @@ class MqttBitNetService:
             
         # Configure TLS if enabled
         if mqtt_config.get('use_tls', False):
-            self.mqtt_client.tls_set()
+            ca_certs = mqtt_config.get('ca_certs', None)
+            certfile = mqtt_config.get('certfile', None)
+            keyfile = mqtt_config.get('keyfile', None)
+            
+            if ca_certs or certfile or keyfile:
+                # Use custom certificates
+                self.mqtt_client.tls_set(
+                    ca_certs=ca_certs,
+                    certfile=certfile,
+                    keyfile=keyfile
+                )
+            else:
+                # Use default TLS
+                self.mqtt_client.tls_set()
             
         try:
             # Connect to MQTT broker
@@ -421,7 +434,12 @@ def create_default_config() -> Dict[str, Any]:
             "port": 1883,
             "topic": "bitnet/chat",
             "keepalive": 60,
-            "use_tls": False
+            "use_tls": False,
+            "ca_certs": "ca.crt",
+            "certfile": "client1-authnID.pem",
+            "keyfile": "client1-authnID.key",
+            "username": "",
+            "password": ""
         },
         "bitnet_path": "../BitNet",
         "bitnet_params": {

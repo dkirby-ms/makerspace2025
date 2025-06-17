@@ -5,6 +5,9 @@
     "topic": "bitnet/chat",
     "keepalive": 60,
     "use_tls": false,
+    "ca_certs": "ca.crt",
+    "certfile": "client1-authnID.pem",
+    "keyfile": "client1-authnID.key",
     "username": "",
     "password": ""
   },

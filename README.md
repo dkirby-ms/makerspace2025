@@ -15,10 +15,22 @@ az deployment group create --resource-group rg-Makerspace2025-IoT --template-fil
 ### BitNet MQTT Service
 Install and manage the BitNet MQTT service for Pi devices:
 ```bash
-./install.sh      # Install the service
+./install.sh      # Install the service (includes certificate generation)
 ./start_service.sh # Start the service
 ./stop_service.sh  # Stop the service
 ./uninstall.sh     # Completely remove the service
 ```
+
+### Certificate Management
+For MQTT TLS authentication:
+```bash
+./generate_certs.sh  # Generate CA and client certificates
+./show_certs.sh      # Display certificate information
+```
+
+The certificate generation uses step-cli to create:
+- CA (Certificate Authority) certificates
+- Client certificates for device authentication
+- Certificates compatible with Azure Event Grid MQTT
 
 See `src/README.md` for detailed documentation.
