@@ -180,6 +180,7 @@ class MqttBitNetService:
         """Determine if the service should respond to a message."""
         # Don't respond to own messages
         if message.device_id == self.device_id:
+            self.logger.debug(f"Not responding to own message from {message.device_id}")
             return False
             
         # Apply custom response criteria
@@ -188,23 +189,36 @@ class MqttBitNetService:
         # Check message type filter
         allowed_types = response_criteria.get('message_types', ['general'])
         if message.message_type not in allowed_types:
+            self.logger.debug(f"Message type '{message.message_type}' not in allowed types {allowed_types}")
             return False
             
         # Check content filters
         content_filters = response_criteria.get('content_filters', [])
+        content_match = False
         for filter_item in content_filters:
             if filter_item.lower() in message.content.lower():
-                return True
+                content_match = True
+                break
+                
+        if content_filters and not content_match:
+            self.logger.debug(f"Content '{message.content}' doesn't match any filters {content_filters}")
+            # Continue to check default_respond setting
+        elif content_match:
+            self.logger.debug(f"Content matched filter, will respond")
+            return True
                 
         # Check response probability
         response_probability = response_criteria.get('probability', 1.0)
         if response_probability < 1.0:
             import random
             if random.random() > response_probability:
+                self.logger.debug(f"Failed probability check ({response_probability})")
                 return False
                 
         # Default behavior based on configuration
-        return response_criteria.get('default_respond', True)
+        default_respond = response_criteria.get('default_respond', True)
+        self.logger.debug(f"Using default_respond setting: {default_respond}")
+        return default_respond
         
     def _generate_prompt(self, message: MqttMessage, context: list) -> str:
         """Generate prompt for BitNet based on message and context."""
@@ -251,7 +265,20 @@ class MqttBitNetService:
     def on_mqtt_message(self, client, userdata, msg):
         """Callback for received MQTT messages."""
         try:
-            payload = json.loads(msg.payload.decode())
+            raw_payload = msg.payload.decode()
+            self.logger.debug(f"Raw MQTT payload: {raw_payload}")
+            
+            payload = json.loads(raw_payload)
+            self.logger.debug(f"Parsed JSON payload: {payload}")
+            
+            # Check if payload has required fields
+            if 'device_id' not in payload:
+                self.logger.warning(f"Missing 'device_id' in payload: {payload}")
+                return
+            if 'content' not in payload:
+                self.logger.warning(f"Missing 'content' in payload: {payload}")
+                return
+                
             message = MqttMessage.from_dict(payload)
             
             self.logger.info(f"Received message from {message.device_id}: {message.content[:100]}...")
@@ -266,9 +293,11 @@ class MqttBitNetService:
                 self._handle_response(message)
                 
         except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to decode MQTT message: {e}")
+            self.logger.error(f"Failed to decode MQTT message: {e}. Raw payload: {msg.payload.decode()}")
+        except KeyError as e:
+            self.logger.error(f"Missing required field {e} in MQTT message: {payload}")
         except Exception as e:
-            self.logger.error(f"Error processing MQTT message: {e}")
+            self.logger.error(f"Error processing MQTT message: {e}. Payload: {msg.payload.decode()}")
             
     def _handle_response(self, message: MqttMessage):
         """Handle generating and sending a response to a message."""

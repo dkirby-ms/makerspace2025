@@ -5,9 +5,8 @@
     "topic": "devices/bitnet-device/telemetry",
     "keepalive": 60,
     "use_tls": true,
-    "ca_certs": "../intermediate_ca.crt",
-    "certfile": "../client1-authnID.pem",
-    "keyfile": "../client1-authnID.key",
+    "certfile": "/home/saitcho/makerspace2025/client1-authnID.pem",
+    "keyfile": "/home/saitcho/makerspace2025/client1-authnID.key",
     "username": "",
     "password": ""
   },
@@ -15,7 +14,7 @@
   "bitnet_path": "/home/saitcho/BitNet",
   "bitnet_params": {
     "model_path": "/home/saitcho/BitNet/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf",
-    "n_predict": 128,
+    "n_predict": 512,
     "threads": 2,
     "ctx_size": 2048,
     "temperature": 0.8,
@@ -28,7 +27,7 @@
     "content_filters": ["help", "?", "what", "how", "explain"]
   },
   "response_delay": 2.0,
-  "log_level": "INFO",
+  "log_level": "DEBUG",
   "log_file": "bitnet_mqtt_service.log",
-  "prompt_template": "You are a helpful AI assistant named {own_device_id} in an IoT network. Device {device_id} said: '{content}'. Recent conversation context: {context}. Provide a helpful, concise response that is relevant to the conversation. Keep responses under 200 words."
+  "prompt_template": "You are a helpful AI assistant named {own_device_id} in an IoT network. Device {device_id} said: '{content}'. Recent conversation context: {context}. Provide a helpful, concise response that is relevant to the conversation. Keep responses under 200 words. End the response with a simple query or request for follow up information."
 }
