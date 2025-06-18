@@ -4,6 +4,9 @@
 @description('Name of the Event Grid namespace')
 param eventGridNamespaceName string = 'makerspace-eventgrid'
 
+@description('Name of the Container App for certificate management')
+param containerAppName string = 'makerspace-cert-service'
+
 @description('Location for all resources')
 param location string = resourceGroup().location
 
@@ -32,6 +35,16 @@ module eventGrid 'eventGrid.bicep' = {
   }
 }
 
+module containerApp 'containerApps.bicep' = {
+  name: 'containerAppDeployment'
+  params: {
+    containerAppName: containerAppName
+    location: location
+    eventGridNamespaceName: eventGridNamespaceName
+    eventGridResourceGroupName: resourceGroup().name
+  }
+}
+
 // IoT Hub outputs disabled - using Event Grid MQTT broker only
 // output iotHubName string = iotHub.outputs.iotHubName
 // output iotHubHostName string = iotHub.outputs.iotHubHostName
@@ -42,3 +55,6 @@ output mqttHostname string = eventGrid.outputs.mqttHostname
 output caCertificateName string = eventGrid.outputs.caCertificateName
 output mqttClientName string = eventGrid.outputs.mqttClientName
 output resourceGroupName string = resourceGroup().name
+output containerAppName string = containerApp.outputs.containerAppName
+output containerAppUrl string = containerApp.outputs.containerAppUrl
+output containerRegistryName string = containerApp.outputs.containerRegistryName
