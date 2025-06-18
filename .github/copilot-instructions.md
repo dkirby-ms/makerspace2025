@@ -7,6 +7,9 @@
 ## Tools
 - Use step-cli for creating and managing certificates and keys.
 - Use mosquitto for MQTT operations.
+- Standardize on Typescript with NextJS for web applications.
+- Applications should run on Azure App Service or on Azure Container Apps for containerized applications.
+- Build Bicep templates for infrastructure as code.
 
 ## Response personality
 - Responses should be straightforward and factual.
