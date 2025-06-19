@@ -1,4 +1,4 @@
-import { CertificateManager } from '../src/certificateManager';
+import { CertificateManager } from '../certificateManager';
 
 describe('CertificateManager', () => {
   let certManager: CertificateManager;
