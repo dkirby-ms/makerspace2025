@@ -84,12 +84,16 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'cert-service'
           env: [
             {
-              name: 'EVENT_GRID_NAMESPACE_NAME'
+              name: 'EVENTGRID_NAMESPACE_NAME'
               value: eventGridNamespaceName
             }
             {
-              name: 'EVENT_GRID_RESOURCE_GROUP'
+              name: 'EVENTGRID_RESOURCE_GROUP'
               value: eventGridResourceGroupName
+            }
+            {
+              name: 'AZURE_SUBSCRIPTION_ID'
+              value: subscription().subscriptionId
             }
             {
               name: 'PORT'
@@ -116,6 +120,28 @@ resource eventGridDataSenderRole 'Microsoft.Authorization/roleAssignments@2022-0
   name: guid(resourceGroup().id, containerApp.name, '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39')
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39') // EventGrid Data Sender
+    principalId: containerApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Role assignment for Container App to read Event Grid
+resource eventGridDataReaderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: resourceGroup()
+  name: guid(resourceGroup().id, containerApp.name, 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7') // Reader
+    principalId: containerApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Role assignment for Container App as EventGrid Contributor
+resource eventGridContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: resourceGroup()
+  name: guid(resourceGroup().id, containerApp.name, '1e241071-0855-49ea-94dc-649edcd759de')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1e241071-0855-49ea-94dc-649edcd759de') // EventGrid Contributor
     principalId: containerApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
