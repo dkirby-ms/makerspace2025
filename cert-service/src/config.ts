@@ -50,15 +50,19 @@ export const CONSTANTS = {
  * Validate required configuration
  */
 export function validateConfig(): void {
-  const requiredFields = [
+  const required = [
     'EVENTGRID_NAMESPACE_NAME',
     'EVENTGRID_RESOURCE_GROUP', 
     'AZURE_SUBSCRIPTION_ID'
   ];
 
-  const missing = requiredFields.filter(field => !process.env[field]);
+  const missing = required.filter(env => !process.env[env]);
   
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  if (!CONFIG.eventGrid.namespaceName) {
+    throw new Error('Event Grid namespace name is required');
   }
 }

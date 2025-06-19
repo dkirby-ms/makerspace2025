@@ -1,6 +1,3 @@
-// @description('Name of the IoT Hub')
-// param iotHubName string = 'makerspace-iot-hub'
-
 @description('Name of the Event Grid namespace')
 param eventGridNamespaceName string = 'makerspace-eventgrid'
 
@@ -15,15 +12,6 @@ param caCertificateContent string = ''
 
 @description('Deploy CA certificate (set to false initially, true after certificate generation)')
 param deployCaCertificate bool = false
-
-// IoT Hub deployment disabled - using Event Grid MQTT broker only
-// module iotHub 'iotHub.bicep' = {
-//   name: 'iotHubDeployment'
-//   params: {
-//     iotHubName: iotHubName
-//     location: location
-//   }
-// }
 
 module eventGrid 'eventGrid.bicep' = {
   name: 'eventGridDeployment'
@@ -45,10 +33,6 @@ module containerApp 'containerApps.bicep' = {
   }
 }
 
-// IoT Hub outputs disabled - using Event Grid MQTT broker only
-// output iotHubName string = iotHub.outputs.iotHubName
-// output iotHubHostName string = iotHub.outputs.iotHubHostName
-// output iotHubResourceId string = iotHub.outputs.iotHubResourceId
 output eventGridNamespaceName string = eventGrid.outputs.eventGridNamespaceName
 output eventGridNamespaceId string = eventGrid.outputs.eventGridNamespaceId
 output mqttHostname string = eventGrid.outputs.mqttHostname
