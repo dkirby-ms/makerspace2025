@@ -4,7 +4,7 @@
 set -e
 
 # Configuration
-RESOURCE_GROUP="rg-Makerspace2025"
+RESOURCE_GROUP="rg-makerspace2025"
 LOCATION="westus2"
 ACR_NAME=""
 CONTAINER_APP_NAME=""

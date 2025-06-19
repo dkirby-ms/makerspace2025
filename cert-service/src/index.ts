@@ -24,7 +24,21 @@ const eventGridManager = new EventGridClientManager(
 );
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
@@ -176,6 +190,13 @@ app.get('/', async (req, res) => {
             background-color: #f0f0f0;
             color: #333;
         }
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
         .api-info {
             background: #e8f4fd;
             border-left: 4px solid #2196F3;
@@ -217,7 +238,7 @@ app.get('/', async (req, res) => {
             <h2>📱 Registered Devices</h2>
             <div class="actions">
                 <a href="/ca-certificate" class="btn btn-secondary">📥 Download CA Certificate</a>
-                <button onclick="refreshPage()" class="btn btn-primary">🔄 Refresh</button>
+                <button id="refresh-btn" class="btn btn-primary">🔄 Refresh</button>
             </div>
         </div>
 
@@ -234,6 +255,7 @@ app.get('/', async (req, res) => {
                         </div>
                         <div class="actions">
                             <a href="/device/${deviceId}/status" class="btn btn-secondary">📊 Status</a>
+                            <button class="btn btn-danger unregister-btn" data-device-id="${deviceId}">🗑️ Unregister</button>
                         </div>
                     </div>
                 `).join('')}
@@ -259,8 +281,48 @@ app.get('/', async (req, res) => {
     </div>
 
     <script>
-        function refreshPage() {
-            window.location.reload();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Refresh button event listener
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    window.location.reload();
+                });
+            }
+            
+            // Unregister button event listeners
+            const unregisterBtns = document.querySelectorAll('.unregister-btn');
+            unregisterBtns.forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const deviceId = this.getAttribute('data-device-id');
+                    await unregisterDevice(deviceId);
+                });
+            });
+        });
+        
+        async function unregisterDevice(deviceId) {
+            if (!confirm('Are you sure you want to unregister device "' + deviceId + '"? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/device/' + deviceId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Device "' + deviceId + '" has been successfully unregistered.');
+                    window.location.reload();
+                } else {
+                    const errorData = await response.json();
+                    alert('Failed to unregister device: ' + (errorData.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error unregistering device: ' + error.message);
+            }
         }
         
         // Auto-refresh every 30 seconds
