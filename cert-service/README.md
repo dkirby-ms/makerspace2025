@@ -1,52 +1,34 @@
 # Certificate Service
 
-## Overview
-This service issues X.509 certificates to IoT devices and registers them as MQTT clients in Azure Event Grid namespace.
+This directory contains the Node.js/TypeScript certificate management service.
 
-## Features
-- Generate CA certificates and device certificates
-- Register devices as MQTT clients in Event Grid
-- REST API for device management
-- Containerized deployment on Azure App Service
+See the main [README.md](../README.md) for complete documentation.
 
-## API Endpoints
+## Quick Development Setup
 
-### Health Check
-```
-GET /health
-```
+```bash
+# Install dependencies
+npm install
 
-### Get CA Certificate
-```
-GET /ca-certificate
-```
-Returns the CA certificate in PEM format for device verification.
+# Start development server
+npm run dev
 
-### Register Device
-```
-POST /register-device
-Content-Type: application/json
+# Run tests
+npm test
 
-{
-  "deviceId": "device-001"
-}
-```
-Generates a certificate for the device and registers it in Event Grid.
-
-### Get Device Status
-```
-GET /device/{deviceId}/status
+# Build for production
+npm run build
 ```
 
-### List Devices
-```
-GET /devices
+## Environment Variables Required
+
+```bash
+EVENTGRID_NAMESPACE_NAME=your-namespace
+EVENTGRID_RESOURCE_GROUP=your-resource-group  
+AZURE_SUBSCRIPTION_ID=your-subscription-id
 ```
 
-### Unregister Device
-```
-DELETE /device/{deviceId}
-```
+For complete API documentation and deployment instructions, see the main project README.
 
 ## Environment Variables
 - `EVENTGRID_NAMESPACE_NAME`: Event Grid namespace name

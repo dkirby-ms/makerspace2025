@@ -1,6 +1,9 @@
 # Use Node.js 18 Alpine as base image
 FROM node:18-alpine
 
+# Install git, tar and other build tools needed for app deployment
+RUN apk add --no-cache git tar
+
 # Set working directory
 WORKDIR /app
 
@@ -19,6 +22,10 @@ RUN npm run build
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S certservice -u 1001 -G nodejs
+
+# Create deployment directory and set permissions
+RUN mkdir -p /tmp/makerspace-deployments && \
+    chown -R certservice:nodejs /tmp/makerspace-deployments
 
 # Change ownership of app directory
 RUN chown -R certservice:nodejs /app

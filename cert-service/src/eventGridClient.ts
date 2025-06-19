@@ -7,6 +7,20 @@ export interface DeviceRegistration {
   clientName: string;
 }
 
+export interface TopicSpaceInfo {
+  name: string;
+  description?: string;
+  topicTemplates: string[];
+}
+
+export interface PermissionBindingInfo {
+  name: string;
+  description?: string;
+  clientGroupName?: string;
+  topicSpaceName: string;
+  permission: string;
+}
+
 export class EventGridClientManager {
   private client: EventGridManagementClient;
   private subscriptionId: string;
@@ -156,6 +170,60 @@ export class EventGridClientManager {
         return null;
       }
       throw error;
+    }
+  }
+
+  /**
+   * Get all topic spaces in the namespace
+   */
+  async getTopicSpaces(): Promise<TopicSpaceInfo[]> {
+    try {
+      const topicSpaces = [];
+      const iterator = this.client.topicSpaces.listByNamespace(
+        this.resourceGroupName,
+        this.namespaceName
+      );
+
+      for await (const topicSpace of iterator) {
+        topicSpaces.push({
+          name: topicSpace.name || '',
+          description: topicSpace.description,
+          topicTemplates: topicSpace.topicTemplates || []
+        });
+      }
+
+      return topicSpaces;
+    } catch (error) {
+      console.error('Failed to list topic spaces:', error);
+      throw new Error(`Failed to list topic spaces: ${error}`);
+    }
+  }
+
+  /**
+   * Get all permission bindings in the namespace
+   */
+  async getPermissionBindings(): Promise<PermissionBindingInfo[]> {
+    try {
+      const permissionBindings = [];
+      const iterator = this.client.permissionBindings.listByNamespace(
+        this.resourceGroupName,
+        this.namespaceName
+      );
+
+      for await (const binding of iterator) {
+        permissionBindings.push({
+          name: binding.name || '',
+          description: binding.description,
+          clientGroupName: binding.clientGroupName,
+          topicSpaceName: binding.topicSpaceName || '',
+          permission: binding.permission || ''
+        });
+      }
+
+      return permissionBindings;
+    } catch (error) {
+      console.error('Failed to list permission bindings:', error);
+      throw new Error(`Failed to list permission bindings: ${error}`);
     }
   }
 }
