@@ -34,7 +34,7 @@ export const CONFIG: ServiceConfig = {
   appDeployment: {
     enabled: process.env.ENABLE_APP_DEPLOYMENT === 'true',
     tempDir: process.env.APP_DEPLOYMENT_TEMP_DIR || '/tmp/makerspace-deployments',
-    defaultRepo: process.env.BITNET_RUNNER_REPO || 'https://github.com/bitnet_runner.git'
+    defaultRepo: process.env.BITNET_RUNNER_REPO || 'https://github.com/dkirby-ms/bitnet_runner'
   }
 };
 

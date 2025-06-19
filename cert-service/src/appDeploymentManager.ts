@@ -28,13 +28,12 @@ export interface DeviceConnectionInfo {
 
 export class AppDeploymentManager {
   private readonly defaultAppConfig: AppDeploymentConfig = {
-    gitRepository: 'https://github.com/bitnet_runner.git',
+    gitRepository: 'https://github.com/dkirby-ms/bitnet_runner',
     targetPath: '/opt/makerspace/apps/bitnet_runner',
     postInstallCommands: [
-      'npm install',
-      'npm run build'
+      'pip install -r requirements.txt'
     ],
-    requiredFiles: ['package.json', 'src/index.ts']
+    requiredFiles: ['requirements.txt', 'mqtt_listener.py']
   };
 
   constructor(private tempDir: string = '/tmp/makerspace-deployments') {
@@ -224,8 +223,7 @@ Do not commit these files to version control.
    */
   private async runCommand(command: string, workingDir: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const [cmd, ...args] = command.split(' ');
-      const process = spawn(cmd, args, {
+      const process = spawn('sh', ['-c', command], {
         cwd: workingDir,
         stdio: 'inherit'
       });

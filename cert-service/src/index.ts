@@ -20,7 +20,7 @@ const CA_CERT_SUBJECT = process.env.CA_CERT_SUBJECT || '/C=US/ST=CA/L=SanFrancis
 const CERT_VALIDITY_DAYS = parseInt(process.env.CERT_VALIDITY_DAYS || '365');
 const ENABLE_APP_DEPLOYMENT = process.env.ENABLE_APP_DEPLOYMENT === 'true';
 const APP_DEPLOYMENT_TEMP_DIR = process.env.APP_DEPLOYMENT_TEMP_DIR || '/tmp/makerspace-deployments';
-const BITNET_RUNNER_REPO = process.env.BITNET_RUNNER_REPO || 'https://github.com/bitnet_runner.git';
+const BITNET_RUNNER_REPO = process.env.BITNET_RUNNER_REPO || 'https://github.com/dkirby-ms/bitnet_runner';
 
 // Initialize managers
 const certificateManager = new CertificateManager(CA_CERT_SUBJECT);
@@ -468,8 +468,8 @@ app.post('/register-device', async (req, res) => {
           {
             gitRepository: BITNET_RUNNER_REPO,
             targetPath: `/opt/makerspace/apps/bitnet_runner`,
-            postInstallCommands: ['npm install', 'npm run build'],
-            requiredFiles: ['package.json']
+            postInstallCommands: ['pip install -r requirements.txt'],
+            requiredFiles: ['requirements.txt']
           }
         );
 
@@ -1214,8 +1214,8 @@ app.post('/device/:deviceId/deploy-app', async (req, res) => {
     const appConfig = {
       gitRepository: gitRepository || BITNET_RUNNER_REPO,
       targetPath: targetPath || `/opt/makerspace/apps/bitnet_runner`,
-      postInstallCommands: postInstallCommands || ['npm install', 'npm run build'],
-      requiredFiles: requiredFiles || ['package.json']
+      postInstallCommands: postInstallCommands || ['pip install -r requirements.txt'],
+      requiredFiles: requiredFiles || ['requirements.txt']
     };
 
     const deploymentResult = await appDeploymentManager.deployAppToDevice(

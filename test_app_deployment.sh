@@ -46,7 +46,7 @@ make_request() {
     local url="$2"
     local data="${3:-}"
     
-    log_info "$method $url"
+    log_info "$method $url" >&2
     
     local response
     local http_code
@@ -70,11 +70,41 @@ make_request() {
         echo "$body" | jq '.' 2>/dev/null || echo "$body"
         return 0
     else
-        log_error "HTTP $http_code: $body"
+        log_error "HTTP $http_code: $body" >&2
         return 1
     fi
+}
+
+# Function to make HTTP requests and return raw JSON (for variable assignment)
+make_request_raw() {
+    local method="$1"
+    local url="$2"
+    local data="${3:-}"
     
-    echo ""
+    local response
+    local http_code
+    
+    if [[ -n "$data" ]]; then
+        response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+                      -X "$method" \
+                      -H "Content-Type: application/json" \
+                      -d "$data" \
+                      "$url")
+    else
+        response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+                      -X "$method" \
+                      "$url")
+    fi
+    
+    http_code=$(echo "$response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+    body=$(echo "$response" | sed -E 's/HTTPSTATUS:[0-9]*$//')
+    
+    if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+        echo "$body"
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Function to check service health
@@ -101,28 +131,41 @@ fi
 
 # Register device (should include app deployment if enabled)
 echo "3️⃣ Registering device with automatic app deployment..."
-REGISTRATION_RESPONSE=$(make_request "POST" "$CERT_SERVICE_URL/register-device" "{\"deviceId\": \"$TEST_DEVICE_ID\"}")
+log_info "POST $CERT_SERVICE_URL/register-device"
+REGISTRATION_RESPONSE=$(make_request_raw "POST" "$CERT_SERVICE_URL/register-device" "{\"deviceId\": \"$TEST_DEVICE_ID\"}")
+
+if [[ $? -eq 0 ]]; then
+    echo "$REGISTRATION_RESPONSE" | jq '.'
+else
+    log_error "Device registration failed"
+    exit 1
+fi
 
 # Check if app deployment was included
-APP_DEPLOYMENT_ENABLED=$(echo "$REGISTRATION_RESPONSE" | jq -r '.appDeployment.enabled')
-APP_DEPLOYMENT_STATUS=$(echo "$REGISTRATION_RESPONSE" | jq -r '.appDeployment.status')
+if [[ -n "$REGISTRATION_RESPONSE" ]]; then
+    APP_DEPLOYMENT_ENABLED=$(echo "$REGISTRATION_RESPONSE" | jq -r '.appDeployment.enabled // false')
+    APP_DEPLOYMENT_STATUS=$(echo "$REGISTRATION_RESPONSE" | jq -r '.appDeployment.status // "unknown"')
 
-echo "   App Deployment Enabled: $APP_DEPLOYMENT_ENABLED"
-echo "   App Deployment Status: $APP_DEPLOYMENT_STATUS"
+    echo "   App Deployment Enabled: $APP_DEPLOYMENT_ENABLED"
+    echo "   App Deployment Status: $APP_DEPLOYMENT_STATUS"
 
-if [ "$APP_DEPLOYMENT_ENABLED" = "true" ]; then
-    if [ "$APP_DEPLOYMENT_STATUS" = "deployed" ]; then
-        echo "   ✅ App deployment successful during registration"
-        DEPLOYMENT_ID=$(echo "$REGISTRATION_RESPONSE" | jq -r '.appDeployment.deploymentId')
-        echo "   Deployment ID: $DEPLOYMENT_ID"
+    if [ "$APP_DEPLOYMENT_ENABLED" = "true" ]; then
+        if [ "$APP_DEPLOYMENT_STATUS" = "deployed" ]; then
+            echo "   ✅ App deployment successful during registration"
+            DEPLOYMENT_ID=$(echo "$REGISTRATION_RESPONSE" | jq -r '.appDeployment.deploymentId // "unknown"')
+            echo "   Deployment ID: $DEPLOYMENT_ID"
+        else
+            echo "   ❌ App deployment failed during registration"
+        fi
     else
-        echo "   ❌ App deployment failed during registration"
+        echo "   ℹ️ App deployment is disabled - testing manual deployment"
+        
+        echo "4️⃣ Testing manual app deployment..."
+        make_request "POST" "$CERT_SERVICE_URL/device/$TEST_DEVICE_ID/deploy-app" "{}"
     fi
 else
-    echo "   ℹ️ App deployment is disabled - testing manual deployment"
-    
-    echo "4️⃣ Testing manual app deployment..."
-    make_request "POST" "$CERT_SERVICE_URL/device/$TEST_DEVICE_ID/deploy-app" "{}"
+    log_error "No registration response received"
+    exit 1
 fi
 
 # Check app deployment status
@@ -161,7 +204,7 @@ echo "🎉 App deployment functionality test completed!"
 echo ""
 echo "Summary:"
 echo "- Device registration: ✅"
-echo "- App deployment integration: $([ "$APP_DEPLOYMENT_ENABLED" = "true" ] && echo "✅" || echo "➖ (disabled)")"
+echo "- App deployment integration: $([ "${APP_DEPLOYMENT_ENABLED:-false}" = "true" ] && echo "✅" || echo "➖ (disabled)")"
 echo "- Manual app deployment: ✅"
 echo "- Error handling: ✅"
 echo "- Cleanup: ✅"
