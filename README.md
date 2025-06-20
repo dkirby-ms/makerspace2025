@@ -225,19 +225,78 @@ The App Service managed identity needs:
 
 ## Device Client Integration
 
-### Python Example
+### Device Enrollment Scripts
+
+The repository includes comprehensive device-side enrollment scripts that handle:
+- Device registration with the certificate service
+- Certificate management and storage
+- MQTT broker connection with TLS
+- Automatic telemetry publishing
+- Command handling
+
+#### Quick Start - Shell Script
+
+```bash
+# Install dependencies
+pip3 install -r device_requirements.txt
+
+# Basic device enrollment
+./enroll_device.sh my-device-001
+
+# Custom certificate service URL
+./enroll_device.sh -u https://cert-service.azurewebsites.net my-device-001
+
+# Test enrollment only (no telemetry loop)
+./enroll_device.sh --test-only my-device-001
+```
+
+#### Python Client Usage
+
+```python
+from enhanced_device_client_with_app_deployment import EnhancedMakerspaceIoTDevice
+
+# Initialize device client
+device = EnhancedMakerspaceIoTDevice(
+    device_id="my-device-001",
+    cert_service_url="https://cert-service.azurewebsites.net"
+)
+
+# Register device and get certificates
+registration = device.register_device()
+print(f"Device registered: {registration.device_id}")
+
+# Connect to MQTT broker
+if device.connect_mqtt():
+    print("Connected to MQTT broker")
+    
+    # Publish device information
+    device.publish_device_info()
+    
+    # Start automatic telemetry publishing
+    device.start_telemetry_loop(interval=30)
+    
+    # Keep running
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        device.disconnect()
+```
+
+#### Advanced Usage
 
 ```python
 from device_config import ConfigManager
 from enhanced_device_client_with_app_deployment import EnhancedMakerspaceIoTDevice
 
-# Create device configuration
+# Create device configuration from environment
 config = ConfigManager.from_environment("my-device-001")
 
-# Initialize device client
+# Initialize device client with custom settings
 device = EnhancedMakerspaceIoTDevice(
     device_id=config.device_id,
-    cert_service_url=config.cert_service_url
+    cert_service_url=config.cert_service_url,
+    cert_dir="/opt/device/certs"
 )
 
 # Register device and get certificates
@@ -246,8 +305,16 @@ registration_data = device.register_device()
 # Connect to MQTT broker
 device.connect_mqtt()
 
-# Start publishing telemetry
-device.start_telemetry_loop()
+# Publish custom telemetry
+device.publish_telemetry({
+    "temperature": 25.0,
+    "humidity": 60.0,
+    "status": "operational"
+})
+
+# Check device status on service
+status = device.get_device_status()
+app_status = device.get_app_deployment_status()
 ```
 
 ## Development
@@ -384,8 +451,11 @@ makerspace2025/
 │   ├── generate_certs.sh         # Certificate generation
 │   ├── deploy-cert-service.sh    # Service deployment
 │   └── test_app_deployment.sh    # Integration testing
-├── device_config.py              # Python device configuration
-├── enhanced_device_client_with_app_deployment.py # Python client example
+├── device_config.py              # Python device configuration module
+├── enhanced_device_client_with_app_deployment.py # Complete device enrollment client
+├── device_enrollment_example.py  # Simple enrollment example
+├── device_requirements.txt       # Python dependencies for devices
+├── enroll_device.sh              # Device enrollment shell script
 └── README.md                     # This file
 ```
 
