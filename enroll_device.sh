@@ -156,9 +156,16 @@ run_test_only() {
     local device_id="$1"
     
     log_info "Running enrollment test for: $device_id"
+    log_info "Testing device enrollment without starting telemetry loop"
     
-    # Run the enrollment example
-    DEVICE_ID="$device_id" CERT_SERVICE_URL="$CERT_SERVICE_URL" python3 device_enrollment_example.py
+    # Use the enhanced device client with no-telemetry flag for testing
+    # This will perform enrollment, connect to MQTT briefly, then exit
+    python3 enhanced_device_client_with_app_deployment.py \
+        "$device_id" \
+        --cert-service-url "$CERT_SERVICE_URL" \
+        --cert-dir "$CERT_DIR" \
+        --no-telemetry \
+        --log-level "$LOG_LEVEL"
 }
 
 main() {
