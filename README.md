@@ -13,7 +13,7 @@ This solution provides a complete certificate management system for IoT devices 
 
 ## Architecture
 
-```
+```shell
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │                 │    │                 │    │                 │
 │  IoT Device     │◄──►│ Certificate     │◄──►│ Event Grid      │
@@ -74,17 +74,21 @@ az deployment group create \
 ### Infrastructure (Bicep Templates)
 
 #### `infra/main.bicep`
+
 Main deployment template that orchestrates:
+
 - Event Grid namespace deployment
 - App Service and Container Registry deployment
 
 #### `infra/eventGrid.bicep`
+
 - Event Grid namespace with MQTT broker
 - Topic spaces for device communication  
 - Permission bindings for devices
 - CA certificate configuration
 
 #### `infra/appService.bicep`
+
 - Azure Container Registry for storing Docker images
 - App Service Plan (Linux)
 - App Service with container support
