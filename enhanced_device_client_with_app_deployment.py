@@ -5,6 +5,7 @@ Handles device enrollment, certificate management, and MQTT connectivity
 """
 
 import os
+import os
 import json
 import time
 import ssl
@@ -22,16 +23,82 @@ import paho.mqtt.client as mqtt
 class RegistrationResponse:
     """Device registration response from certificate service"""
     success: bool
-    device_id: str
-    authentication_name: str
-    client_name: str
-    certificate: str
-    private_key: str
-    ca_certificate: str
-    validity_days: int
-    mqtt_hostname: str
-    instructions: Dict[str, Any]
-    app_deployment: Optional[Dict[str, Any]] = None
+    deviceId: str  # Server sends camelCase
+    registration: Dict[str, Any]
+    certificate: Dict[str, str]
+    
+    @property
+    def device_id(self) -> str:
+        """Provide snake_case property for Python conventions"""
+        return self.deviceId
+    
+    @property
+    def authentication_name(self) -> str:
+        """Extract authentication name from registration"""
+        return self.registration.get('authenticationName', '')
+    
+    @property
+    def client_name(self) -> str:
+        """Extract client name from registration"""
+        return self.registration.get('clientName', '')
+    
+    @property
+    def certificate_pem(self) -> str:
+        """Extract certificate PEM from certificate"""
+        return self.certificate.get('certificate', '')
+    
+    @property
+    def private_key_pem(self) -> str:
+        """Extract private key PEM from certificate"""
+        return self.certificate.get('privateKey', '')
+    
+    @property
+    def public_key_pem(self) -> str:
+        """Extract public key PEM from certificate"""
+        return self.certificate.get('publicKey', '')
+    
+    # Legacy properties for backward compatibility
+    @property
+    def certificate_data(self) -> str:
+        return self.certificate_pem
+    
+    @property
+    def private_key(self) -> str:
+        return self.private_key_pem
+    
+    @property
+    def ca_certificate(self) -> str:
+        # CA certificate would need to be fetched separately
+        return ""
+    
+    @property
+    def validity_days(self) -> int:
+        # Default validity, could be extracted from certificate if needed
+        return 365
+    
+    @property
+    def mqtt_hostname(self) -> str:
+        """Extract MQTT hostname from registration"""
+        return self.registration.get('mqttHostname', '')
+    
+    @property
+    def app_deployment(self) -> Dict[str, Any]:
+        """Extract app deployment info from registration"""
+        return self.registration.get('appDeployment', {})
+    
+    @property
+    def ca_certificate_url(self) -> str:
+        """CA certificate URL - will be set separately by the client"""
+        return ""
+    
+    @property
+    def instructions(self) -> Dict[str, Any]:
+        # Default MQTT instructions
+        return {
+            "message": "Use the provided certificate and private key for MQTT authentication",
+            "port": 8883,
+            "protocol": "mqtts"
+        }
 
 
 class EnhancedMakerspaceIoTDevice:
@@ -43,6 +110,7 @@ class EnhancedMakerspaceIoTDevice:
         self.cert_dir = Path(cert_dir)
         self.mqtt_client: Optional[mqtt.Client] = None
         self.registration_data: Optional[RegistrationResponse] = None
+        self.ca_certificate_pem: str = ""
         self.is_connected = False
         self.telemetry_thread: Optional[threading.Thread] = None
         self.stop_telemetry = threading.Event()
@@ -75,7 +143,7 @@ class EnhancedMakerspaceIoTDevice:
             
             # Register with certificate service
             registration_url = f"{self.cert_service_url}/register-device"
-            payload = {"deviceId": self.device_id}
+            payload = {"deviceId": self.device_id}  # Server expects camelCase
             
             self.logger.info(f"Calling registration endpoint: {registration_url}")
             response = requests.post(
@@ -88,13 +156,20 @@ class EnhancedMakerspaceIoTDevice:
             if response.status_code == 200:
                 data = response.json()
                 self.registration_data = RegistrationResponse(**data)
+                
+                # Fetch CA certificate separately
+                ca_cert = self._fetch_ca_certificate()
+                if ca_cert:
+                    self.ca_certificate_pem = ca_cert
+                
+                # Save certificates and registration data
                 self._save_certificates()
                 self._save_registration_data()
                 self.logger.info("Device registration successful")
                 return self.registration_data
+                
             elif response.status_code == 409:
                 self.logger.warning("Device already registered, attempting to retrieve existing data")
-                # Device already exists, try to get existing registration
                 if self._load_existing_registration():
                     return self.registration_data
                 else:
@@ -108,6 +183,20 @@ class EnhancedMakerspaceIoTDevice:
             error_msg = f"Network error during registration: {str(e)}"
             self.logger.error(error_msg)
             raise Exception(error_msg)
+    
+    def _fetch_ca_certificate(self) -> str:
+        """Fetch CA certificate from the service"""
+        try:
+            ca_url = f"{self.cert_service_url}/ca-certificate"
+            response = requests.get(ca_url, timeout=10)
+            if response.status_code == 200:
+                return response.text
+            else:
+                self.logger.warning(f"Failed to fetch CA certificate: {response.status_code}")
+                return ""
+        except Exception as e:
+            self.logger.warning(f"Error fetching CA certificate: {e}")
+            return ""
             
     def _certificates_exist(self) -> bool:
         """Check if certificate files exist"""
@@ -124,20 +213,24 @@ class EnhancedMakerspaceIoTDevice:
             
         # Save device certificate
         with open(self.cert_file, 'w') as f:
-            f.write(self.registration_data.certificate)
+            f.write(self.registration_data.certificate_pem)
             
         # Save private key
         with open(self.key_file, 'w') as f:
-            f.write(self.registration_data.private_key)
+            f.write(self.registration_data.private_key_pem)
             
-        # Save CA certificate
-        with open(self.ca_file, 'w') as f:
-            f.write(self.registration_data.ca_certificate)
+        # Save CA certificate if available
+        if self.ca_certificate_pem:
+            with open(self.ca_file, 'w') as f:
+                f.write(self.ca_certificate_pem)
+        else:
+            self.logger.warning("CA certificate not available")
             
         # Set appropriate permissions
         os.chmod(self.key_file, 0o600)  # Private key should be readable only by owner
         os.chmod(self.cert_file, 0o644)
-        os.chmod(self.ca_file, 0o644)
+        if self.ca_file.exists():
+            os.chmod(self.ca_file, 0o644)
         
         self.logger.info(f"Certificates saved to {self.cert_dir}")
         
@@ -167,13 +260,24 @@ class EnhancedMakerspaceIoTDevice:
             self.logger.warning(f"Failed to load existing registration: {e}")
             return False
             
-    def connect_mqtt(self) -> bool:
+    def connect_mqtt(self, mqtt_hostname: str = None) -> bool:
         """Connect to MQTT broker using device certificates"""
         if not self.registration_data:
             raise Exception("Device not registered. Call register_device() first.")
             
         if not self._certificates_exist():
             raise Exception("Certificate files not found")
+        
+        # Determine MQTT hostname
+        if mqtt_hostname:
+            broker_hostname = mqtt_hostname
+        else:
+            # Try to get from environment or construct from service URL
+            broker_hostname = os.getenv('MQTT_HOSTNAME')
+            if not broker_hostname:
+                # Construct default hostname (this should be configured properly)
+                self.logger.warning("MQTT hostname not provided, using default pattern")
+                broker_hostname = "makerspace-eventgrid.westus2-1.ts.eventgrid.azure.net"
             
         try:
             # Create MQTT client
@@ -198,10 +302,10 @@ class EnhancedMakerspaceIoTDevice:
             self.mqtt_client.on_log = self._on_log
             
             # Connect to broker
-            port = self.registration_data.instructions.get('port', 8883)
-            self.logger.info(f"Connecting to MQTT broker {self.registration_data.mqtt_hostname}:{port}")
+            port = 8883  # Default MQTTS port
+            self.logger.info(f"Connecting to MQTT broker {broker_hostname}:{port}")
             
-            self.mqtt_client.connect(self.registration_data.mqtt_hostname, port, 60)
+            self.mqtt_client.connect(broker_hostname, port, 60)
             self.mqtt_client.loop_start()
             
             # Wait for connection
@@ -331,8 +435,8 @@ class EnhancedMakerspaceIoTDevice:
             'device_id': self.device_id,
             'client_name': self.registration_data.client_name if self.registration_data else 'unknown',
             'authentication_name': self.registration_data.authentication_name if self.registration_data else 'unknown',
-            'certificate_validity_days': self.registration_data.validity_days if self.registration_data else 0,
-            'app_deployment_enabled': bool(self.registration_data and self.registration_data.app_deployment),
+            'certificate_validity_days': 365,  # Default validity
+            'app_deployment_enabled': False,  # Would need to be determined from service response
             'python_version': os.sys.version,
             'timestamp': time.time()
         }

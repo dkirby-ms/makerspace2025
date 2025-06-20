@@ -69,7 +69,8 @@ export class CertificateManager {
       }
     ]);
 
-    cert.sign(keys.privateKey);
+    // Sign with SHA256 instead of default SHA1
+    cert.sign(keys.privateKey, forge.md.sha256.create());
 
     this.caCert = cert;
     this.caPrivateKey = keys.privateKey;
@@ -137,7 +138,8 @@ export class CertificateManager {
       }
     ]);
 
-    cert.sign(this.caPrivateKey);
+    // Sign with SHA256 instead of default SHA1
+    cert.sign(this.caPrivateKey, forge.md.sha256.create());
 
     return {
       certificate: forge.pki.certificateToPem(cert),
