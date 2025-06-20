@@ -1,8 +1,6 @@
 ---
 mode: 'agent'
 ---
-Build container images before deploying any Azure resources.
-
 Deploy Bicep templates using Azure CLI.
 
 Use rg-Makerspace2025 as the resource group name.

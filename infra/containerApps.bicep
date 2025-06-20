@@ -13,9 +13,6 @@ param eventGridNamespaceName string
 @description('Event Grid namespace resource group')
 param eventGridResourceGroupName string = resourceGroup().name
 
-@description('Docker image tag')
-param imageTag string = 'latest'
-
 // Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   name: containerRegistryName
@@ -80,7 +77,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
     template: {
       containers: [
         {
-          image: '${containerRegistry.properties.loginServer}/cert-service:${imageTag}'
+          image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           name: 'cert-service'
           env: [
             {
@@ -107,7 +104,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 10
       }
     }
@@ -151,3 +148,4 @@ output containerAppName string = containerApp.name
 output containerAppUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
 output containerRegistryName string = containerRegistry.name
 output containerRegistryLoginServer string = containerRegistry.properties.loginServer
+output updateImageCommand string = 'az containerapp update --name ${containerApp.name} --resource-group ${resourceGroup().name} --image ${containerRegistry.properties.loginServer}/cert-service:latest'
