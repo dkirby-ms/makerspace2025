@@ -1,6 +1,6 @@
 # Makerspace 2025 IoT Certificate Management System
 
-A comprehensive IoT certificate management platform combining Azure Event Grid MQTT broker with automated device registration and app deployment capabilities.
+IoT certificate management platform combining Azure Event Grid MQTT broker with automated device registration and app deployment capabilities.
 
 ## Overview
 
