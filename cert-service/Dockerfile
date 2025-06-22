@@ -1,4 +1,25 @@
-# Use Node.js 18 Alpine as base image
+# Build stage
+FROM node:18-alpine AS builder
+
+# Install git, tar and other build tools needed for app deployment
+RUN apk add --no-cache git tar
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies for building)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
 FROM node:18-alpine
 
 # Install git, tar and other build tools needed for app deployment
@@ -10,14 +31,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install only production dependencies
 RUN npm ci --only=production
 
-# Copy source code
-COPY . .
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
 
-# Build TypeScript
-RUN npm run build
+# Copy public directory and other necessary files
+COPY public ./public
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
