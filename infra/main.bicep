@@ -7,11 +7,11 @@ param containerAppName string = 'makerspace-cert-service'
 @description('Location for all resources')
 param location string = resourceGroup().location
 
-@description('Base64 encoded CA certificate content (optional, can be added later)')
-param caCertificateContent string = ''
+@description('Base64 encoded CA certificate content')
+param caCertificateContent string
 
-@description('Deploy CA certificate (set to false initially, true after certificate generation)')
-param deployCaCertificate bool = false
+@description('Deploy CA certificate (defaults to true when certificate content is provided)')
+param deployCaCertificate bool = true
 
 module eventGrid 'eventGrid.bicep' = {
   name: 'eventGridDeployment'

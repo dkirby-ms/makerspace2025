@@ -71,19 +71,9 @@ cp "${CLIENT_AUTHN_ID}.key" "../${CLIENT_AUTHN_ID}.key"
 cp ~/.step/certs/intermediate_ca.crt "../intermediate_ca.crt"
 cp ~/.step/certs/root_ca.crt "../root_ca.crt"
 
-# Create certificate JSON for Azure deployment
-echo "Creating certificate JSON for Azure deployment..."
-INTERMEDIATE_CERT_B64=$(base64 -w 0 ~/.step/certs/intermediate_ca.crt)
-cat > "../ca-cert.json" << EOF
-{
-    "properties": {
-        "description": "Makerspace CA intermediate certificate for device authentication",
-        "encodedCertificate": "-----BEGIN CERTIFICATE-----
-${INTERMEDIATE_CERT_B64}
------END CERTIFICATE-----"
-    }
-}
-EOF
+# Create certificate JSON for Azure deployment (removed - not needed with new flow)
+echo "Creating certificate data for Bicep deployment..."
+echo "Intermediate CA certificate is ready for Bicep parameter at: $CERTS_DIR/../intermediate_ca.crt"
 
 echo ""
 echo "Certificate generation completed successfully!"
@@ -91,20 +81,12 @@ echo ""
 echo "Generated files:"
 echo "  - ${CLIENT_AUTHN_ID}.pem (client certificate)"
 echo "  - ${CLIENT_AUTHN_ID}.key (client private key)"
-echo "  - intermediate_ca.crt (intermediate CA certificate for Azure upload)"
+echo "  - intermediate_ca.crt (intermediate CA certificate for Azure deployment)"
 echo "  - root_ca.crt (root CA certificate)"
-echo "  - ca-cert.json (CA certificate JSON for Azure CLI deployment)"
 echo ""
 echo "Thumbprint for Azure Event Grid client configuration:"
 step certificate fingerprint "${CLIENT_AUTHN_ID}.pem"
 echo ""
 echo "Next steps:"
-echo "1. Upload intermediate_ca.crt to Azure Event Grid namespace CA certificates"
-echo "2. Create MQTT client in Azure Event Grid with:"
-echo "   - Client name: $CLIENT_NAME"
-echo "   - Authentication name: $CLIENT_AUTHN_ID"
-echo "   - Validation scheme: SubjectMatchesAuthenticationName"
-echo "3. Use ${CLIENT_AUTHN_ID}.pem and ${CLIENT_AUTHN_ID}.key for MQTT client connection"
-echo ""
-echo "Azure CLI command to upload CA certificate:"
-echo "az eventgrid namespace ca-certificate create -g <resource-group> --namespace-name <namespace> -n makerspace-ca --certificate @./ca-cert.json"
+echo "1. Run ./deploy.sh to deploy Azure infrastructure with certificates"
+echo "2. The intermediate CA certificate will be automatically included in the deployment"

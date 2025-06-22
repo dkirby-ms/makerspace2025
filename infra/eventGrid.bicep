@@ -10,11 +10,11 @@ param sku string = 'Standard'
 @description('Capacity for the Event Grid namespace')
 param capacity int = 1
 
-@description('Base64 encoded CA certificate content (optional, can be added later)')
-param caCertificateContent string = ''
+@description('Base64 encoded CA certificate content')
+param caCertificateContent string
 
-@description('Deploy CA certificate (set to false initially)')
-param deployCaCertificate bool = false
+@description('Deploy CA certificate (defaults to true when certificate content is provided)')
+param deployCaCertificate bool = true
 
 resource eventGridNamespace 'Microsoft.EventGrid/namespaces@2023-12-15-preview' = {
   name: eventGridNamespaceName
@@ -110,5 +110,5 @@ resource subscriberPermissionBinding 'Microsoft.EventGrid/namespaces/permissionB
 output eventGridNamespaceName string = eventGridNamespace.name
 output eventGridNamespaceId string = eventGridNamespace.id
 output mqttHostname string = eventGridNamespace.properties.topicSpacesConfiguration.hostname
-output caCertificateName string = deployCaCertificate && !empty(caCertificateContent) ? caCertificate.name : ''
+output caCertificateName string = deployCaCertificate && !empty(caCertificateContent) ? caCertificate.name : 'not-deployed'
 output mqttClientName string = mqttClient.name
