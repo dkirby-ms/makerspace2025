@@ -35,9 +35,8 @@ export function validateDeviceId(deviceId: string): { valid: boolean; error?: st
     return { valid: false, error: 'Device ID must be between 3 and 50 characters' };
   }
 
-  // Allow alphanumeric characters, hyphens, and underscores
-  const validPattern = /^[a-zA-Z0-9_-]+$/;
-  if (!validPattern.test(deviceId)) {
+  const DEVICE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+  if (!DEVICE_ID_PATTERN.test(deviceId)) {
     return { valid: false, error: 'Device ID can only contain alphanumeric characters, hyphens, and underscores' };
   }
 
@@ -45,10 +44,33 @@ export function validateDeviceId(deviceId: string): { valid: boolean; error?: st
 }
 
 /**
+ * Standard API response interfaces and formatters
+ */
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  details?: string;
+  timestamp: string;
+}
+
+export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+/**
  * Format error response
  */
-export function formatErrorResponse(error: any, defaultMessage: string = 'Unknown error'): object {
+export function formatErrorResponse(error: any, defaultMessage: string = 'Unknown error'): ApiResponse {
   return {
+    success: false,
     error: defaultMessage,
     details: error instanceof Error ? error.message : String(error),
     timestamp: new Date().toISOString()
@@ -58,13 +80,21 @@ export function formatErrorResponse(error: any, defaultMessage: string = 'Unknow
 /**
  * Format success response
  */
-export function formatSuccessResponse(data: any, message?: string): object {
-  return {
+export function formatSuccessResponse<T>(data?: T, message?: string): ApiResponse<T> {
+  const response: ApiResponse<T> = {
     success: true,
-    ...(message && { message }),
-    ...data,
     timestamp: new Date().toISOString()
   };
+
+  if (data !== undefined) {
+    response.data = data;
+  }
+
+  if (message) {
+    response.message = message;
+  }
+
+  return response;
 }
 
 /**

@@ -8,23 +8,62 @@ import { validateDeviceId, formatErrorResponse } from '../utils';
 
 const router = Router();
 
-// Initialize managers (these should come from a service container in production)
-const certificateManager = new CertificateManager(CONFIG.certificates.caSubject);
-const eventGridManager = new EventGridClientManager(
-  CONFIG.eventGrid.subscriptionId,
-  CONFIG.eventGrid.resourceGroup,
-  CONFIG.eventGrid.namespaceName
-);
-const appDeploymentManager = new AppDeploymentManager(CONFIG.appDeployment.tempDir);
+// Service container for better dependency management
+class ServiceContainer {
+  private static instance: ServiceContainer;
+  private _certificateManager: CertificateManager | null = null;
+  private _eventGridManager: EventGridClientManager | null = null;
+  private _appDeploymentManager: AppDeploymentManager | null = null;
+  private _caCertificateData: any = null;
 
-// Store for CA certificate (in production, use Azure Key Vault)
-let caCertificateData: any = null;
+  static getInstance(): ServiceContainer {
+    if (!ServiceContainer.instance) {
+      ServiceContainer.instance = new ServiceContainer();
+    }
+    return ServiceContainer.instance;
+  }
+
+  get certificateManager(): CertificateManager {
+    if (!this._certificateManager) {
+      this._certificateManager = new CertificateManager(CONFIG.certificates.caSubject);
+    }
+    return this._certificateManager;
+  }
+
+  get eventGridManager(): EventGridClientManager {
+    if (!this._eventGridManager) {
+      this._eventGridManager = new EventGridClientManager(
+        CONFIG.eventGrid.subscriptionId,
+        CONFIG.eventGrid.resourceGroup,
+        CONFIG.eventGrid.namespaceName
+      );
+    }
+    return this._eventGridManager;
+  }
+
+  get appDeploymentManager(): AppDeploymentManager {
+    if (!this._appDeploymentManager) {
+      this._appDeploymentManager = new AppDeploymentManager(CONFIG.appDeployment.tempDir);
+    }
+    return this._appDeploymentManager;
+  }
+
+  get caCertificateData(): any {
+    return this._caCertificateData;
+  }
+
+  set caCertificateData(data: any) {
+    this._caCertificateData = data;
+  }
+}
+
+const services = ServiceContainer.getInstance();
 
 // Initialize CA certificate
 async function initializeCa(): Promise<void> {
   try {
     console.log('Generating CA certificate...');
-    caCertificateData = certificateManager.generateCaCertificate();
+    services.caCertificateData = services.certificateManager.generateCaCertificate();
     console.log('CA certificate generated successfully');
   } catch (error) {
     console.error('Failed to initialize CA certificate:', error);
@@ -36,14 +75,14 @@ async function initializeCa(): Promise<void> {
 initializeCa().catch(console.error);
 
 // Get CA certificate
-router.get('/ca-certificate', (req, res) => {
-  if (!caCertificateData) {
+router.get('/ca-certificate', (req: Request, res: Response) => {
+  if (!services.caCertificateData) {
     return res.status(500).json({ error: 'CA certificate not initialized' });
   }
 
   res.setHeader('Content-Type', 'application/x-pem-file');
   res.setHeader('Content-Disposition', 'attachment; filename="ca-certificate.pem"');
-  res.send(caCertificateData.certificate);
+  res.send(services.caCertificateData.certificate);
 });
 
 // Register new device
@@ -55,16 +94,16 @@ router.post('/register-device', asyncHandler(async (req: Request, res: Response)
     return res.status(400).json({ error: validation.error });
   }
 
-  if (!caCertificateData) {
+  if (!services.caCertificateData) {
     return res.status(500).json({ error: 'CA certificate not initialized' });
   }
 
   try {
     // Register device in Event Grid
-    const deviceRegistration = await eventGridManager.registerDevice(deviceId);
+    const deviceRegistration = await services.eventGridManager.registerDevice(deviceId);
     
     // Generate device certificate
-    const deviceCertificate = certificateManager.generateDeviceCertificate(deviceId);
+    const deviceCertificate = services.certificateManager.generateDeviceCertificate(deviceId);
     
     res.json({
       success: true,
@@ -88,8 +127,8 @@ router.get('/device/:deviceId/status', asyncHandler(async (req: Request, res: Re
   }
 
   try {
-    const devices = await eventGridManager.listRegisteredDevices();
-    const device = devices.find(d => d.includes(deviceId));
+    const devices = await services.eventGridManager.listRegisteredDevices();
+    const device = devices.find((d: string) => d.includes(deviceId));
     
     res.json({
       deviceId,
@@ -105,7 +144,7 @@ router.get('/device/:deviceId/status', asyncHandler(async (req: Request, res: Re
 // List all devices
 router.get('/devices', asyncHandler(async (req: Request, res: Response) => {
   try {
-    const devices = await eventGridManager.listRegisteredDevices();
+    const devices = await services.eventGridManager.listRegisteredDevices();
     res.json({ devices });
   } catch (error: any) {
     console.error('Failed to list devices:', error);
@@ -123,7 +162,7 @@ router.delete('/device/:deviceId', asyncHandler(async (req: Request, res: Respon
   }
 
   try {
-    await eventGridManager.unregisterDevice(deviceId);
+    await services.eventGridManager.unregisterDevice(deviceId);
     res.json({ success: true, message: `Device ${deviceId} deleted successfully` });
   } catch (error: any) {
     console.error('Device deletion failed:', error);
@@ -134,12 +173,6 @@ router.delete('/device/:deviceId', asyncHandler(async (req: Request, res: Respon
 // Deploy app to device
 router.post('/device/:deviceId/deploy-app', asyncHandler(async (req: Request, res: Response) => {
   const { deviceId } = req.params;
-
-  if (!CONFIG.appDeployment.enabled) {
-    return res.status(400).json({ 
-      error: 'App deployment is disabled. Set ENABLE_APP_DEPLOYMENT=true to enable.' 
-    });
-  }
 
   const validation = validateDeviceId(deviceId);
   if (!validation.valid) {
@@ -156,7 +189,7 @@ router.post('/device/:deviceId/deploy-app', asyncHandler(async (req: Request, re
       caCertPath: '/tmp/ca-cert.pem'
     };
 
-    const result = await appDeploymentManager.deployAppToDevice(deviceInfo);
+    const result = await services.appDeploymentManager.deployAppToDevice(deviceInfo);
     res.json(result);
   } catch (error: any) {
     console.error('App deployment failed:', error);

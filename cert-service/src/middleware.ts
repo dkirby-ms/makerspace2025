@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { logWithTimestamp, formatErrorResponse } from './utils';
+import { logWithTimestamp, formatErrorResponse, validateDeviceId } from './utils';
 
 /**
  * Custom error class for application errors
@@ -100,17 +100,16 @@ export function notFoundHandler(req: Request, res: Response): void {
 /**
  * Request validation middleware
  */
-export function validateDeviceId(req: Request, res: Response, next: NextFunction): void {
+export function validateDeviceIdMiddleware(req: Request, res: Response, next: NextFunction): void {
   const { deviceId } = req.params;
   
   if (!deviceId) {
     return next(new AppError('Device ID is required', 400));
   }
 
-  // Validate device ID format
-  const deviceIdPattern = /^[a-zA-Z0-9_-]{3,50}$/;
-  if (!deviceIdPattern.test(deviceId)) {
-    return next(new AppError('Invalid device ID format. Must be 3-50 characters containing only alphanumeric characters, hyphens, and underscores', 400));
+  const validation = validateDeviceId(deviceId);
+  if (!validation.valid) {
+    return next(new AppError(validation.error || 'Invalid device ID format', 400));
   }
 
   next();

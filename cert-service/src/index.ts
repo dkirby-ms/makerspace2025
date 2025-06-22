@@ -4,7 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import path from 'path';
 import * as http from 'http';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG, validateConfig } from './config';
 import { routes } from './routes';
 import { errorHandler } from './middleware';
@@ -55,28 +55,28 @@ const server = http.createServer(app);
 // Initialize WebSocket server for real-time updates
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
+interface WebSocketMessage {
+  type: string;
+  topic?: string;
+  [key: string]: any;
+}
+
+wss.on('connection', (ws: WebSocket) => {
   console.log('WebSocket client connected');
   
-  ws.on('message', (message: string) => {
+  ws.on('message', (message: Buffer) => {
     try {
-      const data = JSON.parse(message);
+      const data: WebSocketMessage = JSON.parse(message.toString());
       console.log('Received WebSocket message:', data);
       
-      // Handle different message types
-      switch (data.type) {
-        case 'ping':
-          ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
-          break;
-        case 'subscribe':
-          // Handle topic subscriptions
-          ws.send(JSON.stringify({ type: 'subscribed', topic: data.topic }));
-          break;
-        default:
-          console.log('Unknown message type:', data.type);
-      }
+      handleWebSocketMessage(ws, data);
     } catch (error) {
       console.error('Failed to parse WebSocket message:', error);
+      ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Invalid message format',
+        timestamp: Date.now()
+      }));
     }
   });
 
@@ -92,6 +92,32 @@ wss.on('connection', (ws) => {
   }));
 });
 
+function handleWebSocketMessage(ws: WebSocket, data: WebSocketMessage): void {
+  switch (data.type) {
+    case 'ping':
+      ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+      break;
+    case 'subscribe':
+      if (data.topic) {
+        ws.send(JSON.stringify({ type: 'subscribed', topic: data.topic }));
+      } else {
+        ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: 'Topic required for subscription',
+          timestamp: Date.now()
+        }));
+      }
+      break;
+    default:
+      console.log('Unknown message type:', data.type);
+      ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: `Unknown message type: ${data.type}`,
+        timestamp: Date.now()
+      }));
+  }
+}
+
 // Graceful shutdown handler
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
@@ -106,7 +132,7 @@ server.listen(PORT, () => {
   console.log(`🚀 Makerspace Certificate Service running on port ${PORT}`);
   console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔐 Event Grid Namespace: ${CONFIG.eventGrid.namespaceName}`);
-  console.log(`🚢 App Deployment: ${CONFIG.appDeployment.enabled ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`🚢 App Deployment: ENABLED`);
 });
 
 export { app, server };

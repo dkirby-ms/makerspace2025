@@ -14,27 +14,33 @@ export interface ServiceConfig {
     validityDays: number;
   };
   appDeployment: {
-    enabled: boolean;
     tempDir: string;
     defaultRepo: string;
   };
 }
 
+const DEFAULT_VALUES = {
+  PORT: 3000,
+  CA_SUBJECT: '/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA',
+  CERT_VALIDITY_DAYS: 365,
+  TEMP_DIR: '/tmp/makerspace-deployments',
+  DEFAULT_REPO: 'https://github.com/dkirby-ms/bitnet_runner'
+} as const;
+
 export const CONFIG: ServiceConfig = {
-  port: parseInt(process.env.PORT || '3000'),
+  port: parseInt(process.env.PORT || DEFAULT_VALUES.PORT.toString(), 10),
   eventGrid: {
     namespaceName: process.env.EVENTGRID_NAMESPACE_NAME || '',
     resourceGroup: process.env.EVENTGRID_RESOURCE_GROUP || '',
     subscriptionId: process.env.AZURE_SUBSCRIPTION_ID || ''
   },
   certificates: {
-    caSubject: process.env.CA_CERT_SUBJECT || '/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA',
-    validityDays: parseInt(process.env.CERT_VALIDITY_DAYS || '365')
+    caSubject: process.env.CA_CERT_SUBJECT || DEFAULT_VALUES.CA_SUBJECT,
+    validityDays: parseInt(process.env.CERT_VALIDITY_DAYS || DEFAULT_VALUES.CERT_VALIDITY_DAYS.toString(), 10)
   },
   appDeployment: {
-    enabled: process.env.ENABLE_APP_DEPLOYMENT === 'true',
-    tempDir: process.env.APP_DEPLOYMENT_TEMP_DIR || '/tmp/makerspace-deployments',
-    defaultRepo: process.env.BITNET_RUNNER_REPO || 'https://github.com/dkirby-ms/bitnet_runner'
+    tempDir: process.env.APP_DEPLOYMENT_TEMP_DIR || DEFAULT_VALUES.TEMP_DIR,
+    defaultRepo: process.env.BITNET_RUNNER_REPO || DEFAULT_VALUES.DEFAULT_REPO
   }
 };
 
@@ -50,13 +56,13 @@ export const CONSTANTS = {
  * Validate required configuration
  */
 export function validateConfig(): void {
-  const required = [
+  const requiredEnvVars = [
     'EVENTGRID_NAMESPACE_NAME',
     'EVENTGRID_RESOURCE_GROUP', 
     'AZURE_SUBSCRIPTION_ID'
-  ];
+  ] as const;
 
-  const missing = required.filter(env => !process.env[env]);
+  const missing = requiredEnvVars.filter(env => !process.env[env]);
   
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
@@ -64,5 +70,15 @@ export function validateConfig(): void {
 
   if (!CONFIG.eventGrid.namespaceName) {
     throw new Error('Event Grid namespace name is required');
+  }
+
+  // Validate port is a valid number
+  if (isNaN(CONFIG.port) || CONFIG.port < 1 || CONFIG.port > 65535) {
+    throw new Error('Port must be a valid number between 1 and 65535');
+  }
+
+  // Validate certificate validity days
+  if (isNaN(CONFIG.certificates.validityDays) || CONFIG.certificates.validityDays < 1) {
+    throw new Error('Certificate validity days must be a positive number');
   }
 }

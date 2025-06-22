@@ -10,6 +10,28 @@ export interface CaCertificateData extends CertificateData {
   serialNumber: string;
 }
 
+const CERTIFICATE_CONSTANTS = {
+  RSA_KEY_SIZE: 2048,
+  CA_VALIDITY_YEARS: 10,
+  CA_SERIAL_NUMBER: '01',
+  DEFAULT_COUNTRY: 'US',
+  DEFAULT_STATE: 'CA',
+  DEFAULT_LOCALITY: 'SanFrancisco',
+  DEFAULT_ORGANIZATION: 'Makerspace',
+  DEFAULT_OU_DEVICES: 'Devices',
+  DEFAULT_OU_IT: 'IT'
+} as const;
+
+const SUBJECT_NAME_MAPPING: Record<string, string> = {
+  'C': 'countryName',
+  'ST': 'stateOrProvinceName',
+  'L': 'localityName',
+  'O': 'organizationName',
+  'OU': 'organizationalUnitName',
+  'CN': 'commonName',
+  'emailAddress': 'emailAddress'
+} as const;
+
 export class CertificateManager {
   private caCert: forge.pki.Certificate | null = null;
   private caPrivateKey: forge.pki.PrivateKey | null = null;
@@ -21,66 +43,72 @@ export class CertificateManager {
    * Generate CA certificate and private key
    */
   generateCaCertificate(): CaCertificateData {
-    const keys = forge.pki.rsa.generateKeyPair(2048);
-    const cert = forge.pki.createCertificate();
+    try {
+      const keys = forge.pki.rsa.generateKeyPair(CERTIFICATE_CONSTANTS.RSA_KEY_SIZE);
+      const cert = forge.pki.createCertificate();
 
-    cert.publicKey = keys.publicKey;
-    cert.serialNumber = '01';
-    cert.validity.notBefore = new Date();
-    cert.validity.notAfter = new Date();
-    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 10);
+      cert.publicKey = keys.publicKey;
+      cert.serialNumber = CERTIFICATE_CONSTANTS.CA_SERIAL_NUMBER;
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(
+        cert.validity.notBefore.getFullYear() + CERTIFICATE_CONSTANTS.CA_VALIDITY_YEARS
+      );
 
-    const attrs = this.parseSubject(this.caSubject);
-    cert.setSubject(attrs);
-    cert.setIssuer(attrs);
+      const attrs = this.parseSubject(this.caSubject);
+      cert.setSubject(attrs);
+      cert.setIssuer(attrs);
 
-    cert.setExtensions([
-      {
-        name: 'basicConstraints',
-        cA: true,
-        critical: true
-      },
-      {
-        name: 'keyUsage',
-        keyCertSign: true,
-        digitalSignature: true,
-        nonRepudiation: true,
-        keyEncipherment: true,
-        dataEncipherment: true,
-        critical: true
-      },
-      {
-        name: 'extKeyUsage',
-        serverAuth: true,
-        clientAuth: true,
-        codeSigning: true,
-        emailProtection: true,
-        timeStamping: true
-      },
-      {
-        name: 'nsCertType',
-        client: true,
-        server: true,
-        email: true,
-        objsign: true,
-        sslCA: true,
-        emailCA: true,
-        objCA: true
-      }
-    ]);
+      cert.setExtensions([
+        {
+          name: 'basicConstraints',
+          cA: true,
+          critical: true
+        },
+        {
+          name: 'keyUsage',
+          keyCertSign: true,
+          digitalSignature: true,
+          nonRepudiation: true,
+          keyEncipherment: true,
+          dataEncipherment: true,
+          critical: true
+        },
+        {
+          name: 'extKeyUsage',
+          serverAuth: true,
+          clientAuth: true,
+          codeSigning: true,
+          emailProtection: true,
+          timeStamping: true
+        },
+        {
+          name: 'nsCertType',
+          client: true,
+          server: true,
+          email: true,
+          objsign: true,
+          sslCA: true,
+          emailCA: true,
+          objCA: true
+        }
+      ]);
 
-    // Sign with SHA256 instead of default SHA1
-    cert.sign(keys.privateKey, forge.md.sha256.create());
+      // Sign with SHA256 instead of default SHA1
+      cert.sign(keys.privateKey, forge.md.sha256.create());
 
-    this.caCert = cert;
-    this.caPrivateKey = keys.privateKey;
+      this.caCert = cert;
+      this.caPrivateKey = keys.privateKey;
 
-    return {
-      certificate: forge.pki.certificateToPem(cert),
-      privateKey: forge.pki.privateKeyToPem(keys.privateKey),
-      publicKey: forge.pki.publicKeyToPem(keys.publicKey),
-      serialNumber: cert.serialNumber
-    };
+      return {
+        certificate: forge.pki.certificateToPem(cert),
+        privateKey: forge.pki.privateKeyToPem(keys.privateKey),
+        publicKey: forge.pki.publicKeyToPem(keys.publicKey),
+        serialNumber: cert.serialNumber
+      };
+    } catch (error) {
+      throw new Error(`Failed to generate CA certificate: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
@@ -91,61 +119,65 @@ export class CertificateManager {
       throw new Error('CA certificate not initialized. Call generateCaCertificate() first.');
     }
 
-    const keys = forge.pki.rsa.generateKeyPair(2048);
-    const cert = forge.pki.createCertificate();
+    try {
+      const keys = forge.pki.rsa.generateKeyPair(CERTIFICATE_CONSTANTS.RSA_KEY_SIZE);
+      const cert = forge.pki.createCertificate();
 
-    cert.publicKey = keys.publicKey;
-    cert.serialNumber = (++this.serialNumber).toString();
-    cert.validity.notBefore = new Date();
-    cert.validity.notAfter = new Date();
-    cert.validity.notAfter.setDate(cert.validity.notBefore.getDate() + validityDays);
+      cert.publicKey = keys.publicKey;
+      cert.serialNumber = (++this.serialNumber).toString();
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setDate(cert.validity.notBefore.getDate() + validityDays);
 
-    // Set device subject with deviceId as CN
-    const deviceSubject = [
-      { name: 'countryName', value: 'US' },
-      { name: 'stateOrProvinceName', value: 'CA' },
-      { name: 'localityName', value: 'SanFrancisco' },
-      { name: 'organizationName', value: 'Makerspace' },
-      { name: 'organizationalUnitName', value: 'Devices' },
-      { name: 'commonName', value: deviceId }
-    ];
+      // Set device subject with deviceId as CN
+      const deviceSubject = [
+        { name: 'countryName', value: CERTIFICATE_CONSTANTS.DEFAULT_COUNTRY },
+        { name: 'stateOrProvinceName', value: CERTIFICATE_CONSTANTS.DEFAULT_STATE },
+        { name: 'localityName', value: CERTIFICATE_CONSTANTS.DEFAULT_LOCALITY },
+        { name: 'organizationName', value: CERTIFICATE_CONSTANTS.DEFAULT_ORGANIZATION },
+        { name: 'organizationalUnitName', value: CERTIFICATE_CONSTANTS.DEFAULT_OU_DEVICES },
+        { name: 'commonName', value: deviceId }
+      ];
 
-    cert.setSubject(deviceSubject);
-    cert.setIssuer(this.caCert.subject.attributes);
+      cert.setSubject(deviceSubject);
+      cert.setIssuer(this.caCert.subject.attributes);
 
-    cert.setExtensions([
-      {
-        name: 'basicConstraints',
-        cA: false
-      },
-      {
-        name: 'keyUsage',
-        digitalSignature: true,
-        nonRepudiation: true,
-        keyEncipherment: true,
-        dataEncipherment: true
-      },
-      {
-        name: 'extKeyUsage',
-        clientAuth: true
-      },
-      {
-        name: 'subjectAltName',
-        altNames: [{
-          type: 2, // DNS
-          value: deviceId
-        }]
-      }
-    ]);
+      cert.setExtensions([
+        {
+          name: 'basicConstraints',
+          cA: false
+        },
+        {
+          name: 'keyUsage',
+          digitalSignature: true,
+          nonRepudiation: true,
+          keyEncipherment: true,
+          dataEncipherment: true
+        },
+        {
+          name: 'extKeyUsage',
+          clientAuth: true
+        },
+        {
+          name: 'subjectAltName',
+          altNames: [{
+            type: 2, // DNS
+            value: deviceId
+          }]
+        }
+      ]);
 
-    // Sign with SHA256 instead of default SHA1
-    cert.sign(this.caPrivateKey, forge.md.sha256.create());
+      // Sign with SHA256 instead of default SHA1
+      cert.sign(this.caPrivateKey, forge.md.sha256.create());
 
-    return {
-      certificate: forge.pki.certificateToPem(cert),
-      privateKey: forge.pki.privateKeyToPem(keys.privateKey),
-      publicKey: forge.pki.publicKeyToPem(keys.publicKey)
-    };
+      return {
+        certificate: forge.pki.certificateToPem(cert),
+        privateKey: forge.pki.privateKeyToPem(keys.privateKey),
+        publicKey: forge.pki.publicKeyToPem(keys.publicKey)
+      };
+    } catch (error) {
+      throw new Error(`Failed to generate device certificate for ${deviceId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
@@ -190,15 +222,6 @@ export class CertificateManager {
    * Map short names to full attribute names
    */
   private getAttributeName(shortName: string): string | null {
-    const mapping: { [key: string]: string } = {
-      'C': 'countryName',
-      'ST': 'stateOrProvinceName',
-      'L': 'localityName',
-      'O': 'organizationName',
-      'OU': 'organizationalUnitName',
-      'CN': 'commonName',
-      'emailAddress': 'emailAddress'
-    };
-    return mapping[shortName] || null;
+    return SUBJECT_NAME_MAPPING[shortName] || null;
   }
 }

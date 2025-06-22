@@ -1,7 +1,6 @@
 export interface HomePageData {
   devices: string[];
   eventGridNamespace: string;
-  appDeploymentEnabled: boolean;
   bitnetRepo: string;
 }
 
@@ -121,15 +120,13 @@ export class HtmlTemplates {
     <div class="api-info">
         <h3>📚 API Endpoints</h3>
         <ul>
-            <li><strong>POST /register-device</strong> - Register a new device and get certificates${data.appDeploymentEnabled ? ' (includes bitnet_runner app deployment)' : ''}</li>
+            <li><strong>POST /register-device</strong> - Register a new device and get certificates (includes bitnet_runner app deployment)</li>
             <li><strong>GET /devices</strong> - List all registered devices (JSON)</li>
             <li><strong>GET /topics</strong> - View MQTT topic spaces and permissions</li>
             <li><strong>GET /device/:deviceId/status</strong> - Get device status</li>
             <li><strong>DELETE /device/:deviceId</strong> - Unregister a device</li>
-            ${data.appDeploymentEnabled ? `
             <li><strong>POST /device/:deviceId/deploy-app</strong> - Deploy app to specific device</li>
             <li><strong>GET /device/:deviceId/app-status</strong> - Get app deployment status</li>
-            ` : ''}
             <li><strong>GET /ca-certificate</strong> - Download CA certificate</li>
             <li><strong>GET /health</strong> - Service health check</li>
         </ul>
@@ -139,22 +136,13 @@ export class HtmlTemplates {
   }
 
   private static generateAppDeploymentInfo(data: HomePageData): string {
-    if (data.appDeploymentEnabled) {
-      return `
-      <div class="app-deployment-info">
-          <h4>🚀 App Deployment</h4>
-          <p><strong>Status:</strong> Enabled</p>
-          <p><strong>Repository:</strong> ${data.bitnetRepo}</p>
-          <p><strong>Description:</strong> Automatically deploys bitnet_runner app with device-specific MQTT configuration</p>
-      </div>`;
-    } else {
-      return `
-      <div class="app-deployment-info">
-          <h4>🚀 App Deployment</h4>
-          <p><strong>Status:</strong> Disabled</p>
-          <p>Set ENABLE_APP_DEPLOYMENT=true to enable automatic app deployment during device registration</p>
-      </div>`;
-    }
+    return `
+    <div class="app-deployment-info">
+        <h4>🚀 App Deployment</h4>
+        <p><strong>Status:</strong> Enabled</p>
+        <p><strong>Repository:</strong> ${data.bitnetRepo}</p>
+        <p><strong>Description:</strong> Automatically deploys bitnet_runner app with device-specific MQTT configuration</p>
+    </div>`;
   }
 
   private static generateNavigation(): string {

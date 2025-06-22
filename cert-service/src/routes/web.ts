@@ -21,7 +21,6 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const templateData = {
       devices,
       eventGridNamespace: CONFIG.eventGrid.namespaceName,
-      appDeploymentEnabled: CONFIG.appDeployment.enabled,
       bitnetRepo: CONFIG.appDeployment.defaultRepo
     };
 

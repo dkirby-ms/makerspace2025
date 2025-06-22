@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Install git, tar and other build tools needed for app deployment
 RUN apk add --no-cache git tar
@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies for building)
-RUN npm ci
+# Clean install to ensure lock file synchronization
+RUN rm -f package-lock.json && npm install && npm ci
 
 # Copy source code
 COPY . .
@@ -20,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Install git, tar and other build tools needed for app deployment
 RUN apk add --no-cache git tar
@@ -31,8 +31,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Clean install to ensure lock file synchronization and install only production dependencies
+RUN rm -f package-lock.json && npm install --omit=dev
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
