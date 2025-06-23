@@ -20,8 +20,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     
     const templateData = {
       devices,
-      eventGridNamespace: CONFIG.eventGrid.namespaceName,
-      bitnetRepo: CONFIG.appDeployment.defaultRepo
+      eventGridNamespace: CONFIG.eventGrid.namespaceName
     };
 
     const html = HtmlTemplates.generateHomePage(templateData);

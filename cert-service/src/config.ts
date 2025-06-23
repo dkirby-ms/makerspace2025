@@ -13,18 +13,12 @@ export interface ServiceConfig {
     caSubject: string;
     validityDays: number;
   };
-  appDeployment: {
-    tempDir: string;
-    defaultRepo: string;
-  };
 }
 
 const DEFAULT_VALUES = {
   PORT: 3000,
   CA_SUBJECT: '/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA',
-  CERT_VALIDITY_DAYS: 365,
-  TEMP_DIR: '/tmp/makerspace-deployments',
-  DEFAULT_REPO: 'https://github.com/dkirby-ms/bitnet_runner'
+  CERT_VALIDITY_DAYS: 365
 } as const;
 
 export const CONFIG: ServiceConfig = {
@@ -37,10 +31,6 @@ export const CONFIG: ServiceConfig = {
   certificates: {
     caSubject: process.env.CA_CERT_SUBJECT || DEFAULT_VALUES.CA_SUBJECT,
     validityDays: parseInt(process.env.CERT_VALIDITY_DAYS || DEFAULT_VALUES.CERT_VALIDITY_DAYS.toString(), 10)
-  },
-  appDeployment: {
-    tempDir: process.env.APP_DEPLOYMENT_TEMP_DIR || DEFAULT_VALUES.TEMP_DIR,
-    defaultRepo: process.env.BITNET_RUNNER_REPO || DEFAULT_VALUES.DEFAULT_REPO
   }
 };
 

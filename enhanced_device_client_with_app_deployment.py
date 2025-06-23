@@ -82,11 +82,6 @@ class RegistrationResponse:
         return self.registration.get('mqttHostname', '')
     
     @property
-    def app_deployment(self) -> Dict[str, Any]:
-        """Extract app deployment info from registration"""
-        return self.registration.get('appDeployment', {})
-    
-    @property
     def ca_certificate_url(self) -> str:
         """CA certificate URL - will be set separately by the client"""
         return ""
@@ -436,7 +431,6 @@ class EnhancedMakerspaceIoTDevice:
             'client_name': self.registration_data.client_name if self.registration_data else 'unknown',
             'authentication_name': self.registration_data.authentication_name if self.registration_data else 'unknown',
             'certificate_validity_days': 365,  # Default validity
-            'app_deployment_enabled': False,  # Would need to be determined from service response
             'python_version': os.sys.version,
             'timestamp': time.time()
         }
@@ -518,22 +512,6 @@ class EnhancedMakerspaceIoTDevice:
             self.logger.error(f"Error getting device status: {e}")
             return {}
             
-    def get_app_deployment_status(self) -> Dict[str, Any]:
-        """Get app deployment status from certificate service"""
-        try:
-            app_status_url = f"{self.cert_service_url}/device/{self.device_id}/app-status"
-            response = requests.get(app_status_url, timeout=10)
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                self.logger.error(f"Failed to get app deployment status: {response.status_code}")
-                return {}
-                
-        except Exception as e:
-            self.logger.error(f"Error getting app deployment status: {e}")
-            return {}
-
 
 def main():
     """Main function for standalone execution"""
@@ -578,9 +556,6 @@ def main():
         print(f"   Authentication Name: {registration.authentication_name}")
         print(f"   Client Name: {registration.client_name}")
         print(f"   Certificate Valid for: {registration.validity_days} days")
-        
-        if registration.app_deployment:
-            print(f"   App Deployment: {registration.app_deployment}")
             
         # Connect to MQTT
         print("Connecting to MQTT broker...")

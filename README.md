@@ -72,8 +72,8 @@ If you prefer to run steps manually:
 #### 2. Deploy Azure Infrastructure with Certificates
 
 ```bash
-# Prepare certificate content (preserve PEM format)
-CA_CERT_CONTENT=$(cat intermediate_ca.crt)
+# Convert certificate to base64
+CA_CERT_B64=$(base64 -w 0 intermediate_ca.crt)
 
 # Create resource group
 az group create --name rg-makerspace2025 --location westus2
@@ -86,7 +86,7 @@ az deployment group create \
   --parameters \
     eventGridNamespaceName=makerspace-eventgrid \
     containerAppName=makerspace-cert-service \
-    caCertificateContent="$CA_CERT_CONTENT"
+    caCertificateContent="$CA_CERT_B64"
 ```
 
 #### 3. Deploy Certificate Service

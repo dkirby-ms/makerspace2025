@@ -1,7 +1,6 @@
 export interface HomePageData {
   devices: string[];
   eventGridNamespace: string;
-  bitnetRepo: string;
 }
 
 export interface TopicsPageData {
@@ -131,17 +130,6 @@ export class HtmlTemplates {
             <li><strong>GET /health</strong> - Service health check</li>
         </ul>
         <p><strong>MQTT Hostname:</strong> ${data.eventGridNamespace}.westus2-1.ts.eventgrid.azure.net:8883</p>
-        ${this.generateAppDeploymentInfo(data)}
-    </div>`;
-  }
-
-  private static generateAppDeploymentInfo(data: HomePageData): string {
-    return `
-    <div class="app-deployment-info">
-        <h4>🚀 App Deployment</h4>
-        <p><strong>Status:</strong> Enabled</p>
-        <p><strong>Repository:</strong> ${data.bitnetRepo}</p>
-        <p><strong>Description:</strong> Automatically deploys bitnet_runner app with device-specific MQTT configuration</p>
     </div>`;
   }
 

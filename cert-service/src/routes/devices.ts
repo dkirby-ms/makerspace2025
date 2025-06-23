@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { CertificateManager } from '../certificateManager';
 import { EventGridClientManager } from '../eventGridClient';
-import { AppDeploymentManager } from '../appDeploymentManager';
 import { CONFIG } from '../config';
 import { asyncHandler } from '../middleware';
 import { validateDeviceId, formatErrorResponse } from '../utils';
@@ -13,7 +12,6 @@ class ServiceContainer {
   private static instance: ServiceContainer;
   private _certificateManager: CertificateManager | null = null;
   private _eventGridManager: EventGridClientManager | null = null;
-  private _appDeploymentManager: AppDeploymentManager | null = null;
   private _caCertificateData: any = null;
 
   static getInstance(): ServiceContainer {
@@ -39,13 +37,6 @@ class ServiceContainer {
       );
     }
     return this._eventGridManager;
-  }
-
-  get appDeploymentManager(): AppDeploymentManager {
-    if (!this._appDeploymentManager) {
-      this._appDeploymentManager = new AppDeploymentManager(CONFIG.appDeployment.tempDir);
-    }
-    return this._appDeploymentManager;
   }
 
   get caCertificateData(): any {
@@ -167,58 +158,6 @@ router.delete('/device/:deviceId', asyncHandler(async (req: Request, res: Respon
   } catch (error: any) {
     console.error('Device deletion failed:', error);
     res.status(500).json(formatErrorResponse(error, 'Failed to delete device'));
-  }
-}));
-
-// Deploy app to device
-router.post('/device/:deviceId/deploy-app', asyncHandler(async (req: Request, res: Response) => {
-  const { deviceId } = req.params;
-
-  const validation = validateDeviceId(deviceId);
-  if (!validation.valid) {
-    return res.status(400).json({ error: validation.error });
-  }
-
-  try {
-    // This would need actual device connection info in production
-    const deviceInfo = {
-      deviceId,
-      mqttHostname: `${CONFIG.eventGrid.namespaceName}.westus2-1.ts.eventgrid.azure.net`,
-      certificatePath: '/tmp/device-cert.pem',
-      privateKeyPath: '/tmp/device-key.pem',
-      caCertPath: '/tmp/ca-cert.pem'
-    };
-
-    const result = await services.appDeploymentManager.deployAppToDevice(deviceInfo);
-    res.json(result);
-  } catch (error: any) {
-    console.error('App deployment failed:', error);
-    res.status(500).json(formatErrorResponse(error, 'Failed to deploy app'));
-  }
-}));
-
-// Get app deployment status
-router.get('/device/:deviceId/app-status', asyncHandler(async (req: Request, res: Response) => {
-  const { deviceId } = req.params;
-
-  const validation = validateDeviceId(deviceId);
-  if (!validation.valid) {
-    return res.status(400).json({ error: validation.error });
-  }
-
-  try {
-    // For now, return a placeholder status
-    // In production, this would query the actual deployment status
-    const status = {
-      deviceId,
-      appDeployed: false,
-      status: 'not_implemented',
-      message: 'App status checking not yet implemented'
-    };
-    res.json(status);
-  } catch (error: any) {
-    console.error('Failed to get app status:', error);
-    res.status(500).json(formatErrorResponse(error, 'Failed to get app status'));
   }
 }));
 
