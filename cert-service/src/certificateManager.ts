@@ -114,7 +114,7 @@ export class CertificateManager {
   /**
    * Generate device certificate signed by CA
    */
-  generateDeviceCertificate(deviceId: string, validityDays: number = 365): CertificateData {
+  generateDeviceCertificate(deviceId: string, authenticationName?: string, validityDays: number = 365): CertificateData {
     if (!this.caCert || !this.caPrivateKey) {
       throw new Error('CA certificate not initialized. Call generateCaCertificate() first.');
     }
@@ -129,14 +129,15 @@ export class CertificateManager {
       cert.validity.notAfter = new Date();
       cert.validity.notAfter.setDate(cert.validity.notBefore.getDate() + validityDays);
 
-      // Set device subject with deviceId as CN
+      // Set device subject with authenticationName as CN
+      const commonName = authenticationName || `${deviceId}-authnID`;
       const deviceSubject = [
         { name: 'countryName', value: CERTIFICATE_CONSTANTS.DEFAULT_COUNTRY },
         { name: 'stateOrProvinceName', value: CERTIFICATE_CONSTANTS.DEFAULT_STATE },
         { name: 'localityName', value: CERTIFICATE_CONSTANTS.DEFAULT_LOCALITY },
         { name: 'organizationName', value: CERTIFICATE_CONSTANTS.DEFAULT_ORGANIZATION },
         { name: 'organizationalUnitName', value: CERTIFICATE_CONSTANTS.DEFAULT_OU_DEVICES },
-        { name: 'commonName', value: deviceId }
+        { name: 'commonName', value: commonName }
       ];
 
       cert.setSubject(deviceSubject);

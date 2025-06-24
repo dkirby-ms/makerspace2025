@@ -1,4 +1,5 @@
 import { CertificateManager } from '../certificateManager';
+import forge from 'node-forge';
 
 describe('CertificateManager', () => {
   let certManager: CertificateManager;
@@ -42,5 +43,44 @@ describe('CertificateManager', () => {
     
     const caCert = customCertManager.generateCaCertificate();
     expect(caCert.certificate).toContain('-----BEGIN CERTIFICATE-----');
+  });
+
+  test('should use authentication name as CN in device certificate', () => {
+    // First generate CA certificate
+    certManager.generateCaCertificate();
+    
+    const deviceId = 'test-device-001';
+    const authenticationName = `${deviceId}-authnID`;
+    
+    // Generate device certificate with explicit authentication name
+    const deviceCert = certManager.generateDeviceCertificate(deviceId, authenticationName);
+    
+    expect(deviceCert).toBeDefined();
+    expect(deviceCert.certificate).toContain('-----BEGIN CERTIFICATE-----');
+    
+    // Parse certificate to verify CN
+    const cert = forge.pki.certificateFromPem(deviceCert.certificate);
+    const commonName = cert.subject.getField('CN');
+    
+    expect(commonName.value).toBe(authenticationName);
+  });
+
+  test('should default to deviceId-authnID as CN when no authentication name provided', () => {
+    // First generate CA certificate
+    certManager.generateCaCertificate();
+    
+    const deviceId = 'test-device-002';
+    
+    // Generate device certificate without explicit authentication name
+    const deviceCert = certManager.generateDeviceCertificate(deviceId);
+    
+    expect(deviceCert).toBeDefined();
+    expect(deviceCert.certificate).toContain('-----BEGIN CERTIFICATE-----');
+    
+    // Parse certificate to verify CN defaults to deviceId-authnID
+    const cert = forge.pki.certificateFromPem(deviceCert.certificate);
+    const commonName = cert.subject.getField('CN');
+    
+    expect(commonName.value).toBe(`${deviceId}-authnID`);
   });
 });

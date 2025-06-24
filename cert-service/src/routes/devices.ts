@@ -3,7 +3,7 @@ import { CertificateManager } from '../certificateManager';
 import { EventGridClientManager } from '../eventGridClient';
 import { CONFIG } from '../config';
 import { asyncHandler } from '../middleware';
-import { validateDeviceId, formatErrorResponse } from '../utils';
+import { validateDeviceId, formatErrorResponse, generateAuthenticationName } from '../utils';
 
 const router = Router();
 
@@ -93,8 +93,9 @@ router.post('/register-device', asyncHandler(async (req: Request, res: Response)
     // Register device in Event Grid
     const deviceRegistration = await services.eventGridManager.registerDevice(deviceId);
     
-    // Generate device certificate
-    const deviceCertificate = services.certificateManager.generateDeviceCertificate(deviceId);
+    // Generate device certificate with authentication name as CN
+    const authenticationName = generateAuthenticationName(deviceId);
+    const deviceCertificate = services.certificateManager.generateDeviceCertificate(deviceId, authenticationName);
     
     res.json({
       success: true,
