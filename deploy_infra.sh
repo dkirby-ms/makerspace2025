@@ -66,6 +66,37 @@ CONTAINER_APP_URL=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.properties.outputs.conta
 
 cd ..
 
+# Create/update test environment file
+echo "Creating test environment configuration..."
+cat > .env.test << EOF
+# Test Environment Configuration
+# Generated on $(date)
+
+# Certificate Service URL
+export CERT_SERVICE_URL="$CONTAINER_APP_URL"
+
+# MQTT Broker Hostname
+export MQTT_HOSTNAME="$MQTT_HOSTNAME"
+
+# Resource Configuration
+export RESOURCE_GROUP="$RESOURCE_GROUP"
+export CONTAINER_REGISTRY_NAME="$CONTAINER_REGISTRY_NAME"
+export EVENTGRID_NAMESPACE="$EVENTGRID_NAMESPACE"
+
+# Certificate Files
+export CLIENT_CERT="client1-authnID.pem"
+export CLIENT_KEY="client1-authnID.key" 
+export CA_CERT="intermediate_ca.crt"
+export ROOT_CA_CERT="root_ca.crt"
+
+# Test Configuration
+export TEST_TIMEOUT=60
+export TEST_VERBOSE=true
+export TEST_DEVICE_ID="client1-authnID"
+EOF
+
+echo "Test environment file updated: .env.test"
+
 # Step 4: Build and deploy certificate service
 echo "Step 4: Building and deploying certificate service..."
 ./deploy_cert_service.sh "$RESOURCE_GROUP" "$CONTAINER_REGISTRY_NAME" "$CONTAINER_APP_NAME"
