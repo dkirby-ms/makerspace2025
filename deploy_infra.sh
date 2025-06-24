@@ -92,4 +92,62 @@ echo "1. Test MQTT connection using client certificate"
 echo "2. Test device registration via certificate service"
 echo "3. Deploy applications to devices"
 echo ""
+
+# Step 6: Test MQTT connection
+echo "Step 6: Testing MQTT connection with certificate..."
+test_mqtt_connection() {
+    local test_result=0
+    
+    # Check if required files exist
+    if [ ! -f "client1-authnID.pem" ] || [ ! -f "client1-authnID.key" ] || [ ! -f "intermediate_ca.crt" ]; then
+        echo "Warning: Required certificate files not found. Skipping MQTT test."
+        return 1
+    fi
+    
+    # Check if mosquitto_pub is available
+    if ! command -v mosquitto_pub &> /dev/null; then
+        echo "Warning: mosquitto_pub not found. Skipping MQTT test."
+        echo "Please install mosquitto-clients: sudo apt-get install mosquitto-clients"
+        return 1
+    fi
+    
+    echo "Testing MQTT connection to $MQTT_HOSTNAME:8883..."
+    
+    # Create test message
+    local test_message='{"timestamp":"'$(date -Iseconds)'","temperature":23.5,"test":true}'
+    local test_topic="devices/client1-authnID/telemetry"
+    
+    # Test MQTT publish with certificate authentication
+    timeout 10 mosquitto_pub \
+        -h "$MQTT_HOSTNAME" \
+        -p 8883 \
+        --cert client1-authnID.pem \
+        --key client1-authnID.key \
+        --cafile intermediate_ca.crt \
+        -t "$test_topic" \
+        -m "$test_message" \
+        -q 1 \
+        --insecure 2>/dev/null
+    
+    test_result=$?
+    
+    if [ $test_result -eq 0 ]; then
+        echo "✓ MQTT connection test successful"
+        echo "  Published test message to topic: $test_topic"
+        return 0
+    else
+        echo "✗ MQTT connection test failed (exit code: $test_result)"
+        echo "  This may be expected if the MQTT endpoint is not yet fully configured"
+        return 1
+    fi
+}
+
+# Run MQTT test if hostname is available
+if [ -n "$MQTT_HOSTNAME" ] && [ "$MQTT_HOSTNAME" != "null" ]; then
+    test_mqtt_connection || echo "MQTT test completed with warnings"
+else
+    echo "MQTT hostname not available. Skipping connection test."
+fi
+
+echo ""
 echo "Deployment completed successfully!"
