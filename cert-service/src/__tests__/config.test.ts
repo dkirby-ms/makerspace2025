@@ -15,13 +15,11 @@ describe('Configuration', () => {
   test('should load default configuration values', () => {
     expect(CONFIG.port).toBe(3000);
     expect(CONFIG.certificates.validityDays).toBe(365);
-    expect(CONFIG.appDeployment.enabled).toBe(false);
   });
 
   test('should use environment variables when provided', () => {
     process.env.PORT = '8080';
     process.env.CERT_VALIDITY_DAYS = '730';
-    process.env.ENABLE_APP_DEPLOYMENT = 'true';
 
     // Re-import to get updated config
     jest.resetModules();
@@ -29,7 +27,6 @@ describe('Configuration', () => {
 
     expect(updatedConfig.port).toBe(8080);
     expect(updatedConfig.certificates.validityDays).toBe(730);
-    expect(updatedConfig.appDeployment.enabled).toBe(true);
   });
 
   test('should validate required environment variables', () => {

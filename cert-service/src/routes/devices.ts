@@ -161,4 +161,31 @@ router.delete('/device/:deviceId', asyncHandler(async (req: Request, res: Respon
   }
 }));
 
+// Delete all devices
+router.delete('/devices', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const result = await services.eventGridManager.unregisterAllDevices();
+    
+    if (result.errors.length > 0) {
+      res.status(207).json({
+        success: true,
+        message: `Removed ${result.removedCount} devices`,
+        removedCount: result.removedCount,
+        errors: result.errors,
+        partialSuccess: true
+      });
+    } else {
+      res.json({
+        success: true,
+        message: `Successfully removed all ${result.removedCount} devices`,
+        removedCount: result.removedCount,
+        errors: []
+      });
+    }
+  } catch (error: any) {
+    console.error('Failed to delete all devices:', error);
+    res.status(500).json(formatErrorResponse(error, 'Failed to delete all devices'));
+  }
+}));
+
 export { router as deviceRoutes };

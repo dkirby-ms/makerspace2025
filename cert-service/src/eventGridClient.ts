@@ -226,4 +226,35 @@ export class EventGridClientManager {
       throw new Error(`Failed to list permission bindings: ${error}`);
     }
   }
+
+  /**
+   * Unregister all devices
+   */
+  async unregisterAllDevices(): Promise<{ removedCount: number; errors: string[] }> {
+    try {
+      const deviceIds = await this.listRegisteredDevices();
+      const errors: string[] = [];
+      let removedCount = 0;
+
+      console.log(`Found ${deviceIds.length} devices to unregister`);
+
+      for (const deviceId of deviceIds) {
+        try {
+          await this.unregisterDevice(deviceId);
+          removedCount++;
+          console.log(`Successfully unregistered device: ${deviceId}`);
+        } catch (error) {
+          const errorMsg = `Failed to unregister device ${deviceId}: ${error}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+
+      console.log(`Unregistered ${removedCount} devices, ${errors.length} errors`);
+      return { removedCount, errors };
+    } catch (error) {
+      console.error('Failed to unregister all devices:', error);
+      throw new Error(`Failed to unregister all devices: ${error}`);
+    }
+  }
 }

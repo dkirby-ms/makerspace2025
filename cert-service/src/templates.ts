@@ -84,6 +84,7 @@ export class HtmlTemplates {
                 <a href="/topics" class="btn btn-secondary">📡 MQTT Topics</a>
                 <a href="/ca-certificate" class="btn btn-secondary">📥 Download CA Certificate</a>
                 <button id="refresh-btn" class="btn btn-primary">🔄 Refresh</button>
+                ${devices.length > 0 ? '<button id="remove-all-btn" class="btn btn-danger">🗑️ Remove All Devices</button>' : ''}
             </div>
         </div>
 
@@ -121,6 +122,7 @@ export class HtmlTemplates {
         <ul>
             <li><strong>POST /register-device</strong> - Register a new device and get certificates (includes bitnet_runner app deployment)</li>
             <li><strong>GET /devices</strong> - List all registered devices (JSON)</li>
+            <li><strong>DELETE /devices</strong> - Remove all registered devices</li>
             <li><strong>GET /topics</strong> - View MQTT topic spaces and permissions</li>
             <li><strong>GET /device/:deviceId/status</strong> - Get device status</li>
             <li><strong>DELETE /device/:deviceId</strong> - Unregister a device</li>

@@ -5,6 +5,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     initializeRefreshButton();
     initializeUnregisterButtons();
+    initializeRemoveAllButton();
     scheduleAutoRefresh();
 });
 
@@ -25,6 +26,15 @@ function initializeUnregisterButtons() {
             await unregisterDevice(deviceId);
         });
     });
+}
+
+function initializeRemoveAllButton() {
+    const removeAllBtn = document.getElementById('remove-all-btn');
+    if (removeAllBtn) {
+        removeAllBtn.addEventListener('click', async function() {
+            await removeAllDevices();
+        });
+    }
 }
 
 async function unregisterDevice(deviceId) {
@@ -49,6 +59,41 @@ async function unregisterDevice(deviceId) {
         }
     } catch (error) {
         alert(`Error unregistering device: ${error.message}`);
+    }
+}
+
+async function removeAllDevices() {
+    if (!confirm('Are you sure you want to remove ALL registered devices? This action cannot be undone and will affect all devices in the system.')) {
+        return;
+    }
+    
+    // Double confirmation for this destructive action
+    if (!confirm('This will permanently remove all device registrations. Are you absolutely certain you want to proceed?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/devices', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.partialSuccess) {
+                alert(`Partially successful: Removed ${result.removedCount} devices.\n\nErrors:\n${result.errors.join('\n')}`);
+            } else {
+                alert(`Successfully removed all ${result.removedCount} devices.`);
+            }
+            window.location.reload();
+        } else {
+            const errorData = await response.json();
+            alert(`Failed to remove all devices: ${errorData.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        alert(`Error removing all devices: ${error.message}`);
     }
 }
 
