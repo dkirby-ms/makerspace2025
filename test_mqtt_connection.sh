@@ -108,10 +108,11 @@ test_mqtt_connection() {
         -p 8883 \
         --cert "$CLIENT_CERT" \
         --key "$CLIENT_KEY" \
+        --cafile "$CA_CERT" \
+        -i "$TEST_DEVICE_ID" \
         -t "$test_topic" \
         -m "$test_message" \
-        -q 1 \
-        --insecure \
+        --tls-use-os-certs \
         -d
     
     local exit_code=$?

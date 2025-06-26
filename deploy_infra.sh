@@ -12,6 +12,37 @@ LOCATION="${LOCATION:-westus2}"
 EVENTGRID_NAMESPACE="${EVENTGRID_NAMESPACE:-makerspace-eventgrid}"
 CONTAINER_APP_NAME="${CONTAINER_APP_NAME:-makerspace-cert-service}"
 
+# Parse command line arguments
+CA_PASSWORD=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --password)
+            CA_PASSWORD="$2"
+            shift 2
+            ;;
+        --password=*)
+            CA_PASSWORD="${1#*=}"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--password <password>]"
+            echo "  --password: Password for CA private key (optional, will prompt if not provided)"
+            echo ""
+            echo "Environment variables:"
+            echo "  RESOURCE_GROUP: Azure resource group name (default: rg-makerspace2025)"
+            echo "  LOCATION: Azure region (default: westus2)"
+            echo "  EVENTGRID_NAMESPACE: Event Grid namespace (default: makerspace-eventgrid)"
+            echo "  CONTAINER_APP_NAME: Container app name (default: makerspace-cert-service)"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 echo "========================================"
 echo "Makerspace 2025 IoT Deployment"
 echo "========================================"
@@ -23,17 +54,21 @@ echo ""
 
 # Step 1: Generate certificates
 echo "Step 1: Generating certificates..."
-./generate_certs.sh
+if [ -n "$CA_PASSWORD" ]; then
+    ./generate_certs.sh --password "$CA_PASSWORD"
+else
+    ./generate_certs.sh
+fi
 
 # Verify certificates were generated
-if [ ! -f "intermediate_ca.crt" ]; then
+if [ ! -f "./certs/intermediate_ca.crt" ]; then
     echo "Error: Certificate generation failed. intermediate_ca.crt not found."
     exit 1
 fi
 
 # Prepare certificate for Bicep parameter (preserve PEM format)
 echo "Preparing certificate for deployment..."
-CA_CERT_CONTENT=$(cat intermediate_ca.crt)
+CA_CERT_CONTENT=$(cat ./certs/intermediate_ca.crt)
 
 # Prepare intermediate private key for Bicep parameter
 echo "Preparing intermediate private key for deployment..."
@@ -95,10 +130,10 @@ export CONTAINER_REGISTRY_NAME="$CONTAINER_REGISTRY_NAME"
 export EVENTGRID_NAMESPACE="$EVENTGRID_NAMESPACE"
 
 # Certificate Files
-export CLIENT_CERT="client1-authnID.pem"
-export CLIENT_KEY="client1-authnID.key" 
-export CA_CERT="intermediate_ca.crt"
-export ROOT_CA_CERT="root_ca.crt"
+export CLIENT_CERT="certs/client1-authnID.pem"
+export CLIENT_KEY="certs/client1-authnID.key" 
+export CA_CERT="certs/intermediate_ca.crt"
+export ROOT_CA_CERT="certs/root_ca.crt"
 
 # Test Configuration
 export TEST_TIMEOUT=60
@@ -137,56 +172,13 @@ echo ""
 
 # Step 6: Test MQTT connection
 echo "Step 6: Testing MQTT connection with certificate..."
-test_mqtt_connection() {
-    local test_result=0
-    
-    # Check if required files exist
-    if [ ! -f "client1-authnID.pem" ] || [ ! -f "client1-authnID.key" ] || [ ! -f "intermediate_ca.crt" ]; then
-        echo "Warning: Required certificate files not found. Skipping MQTT test."
-        return 1
-    fi
-    
-    # Check if mosquitto_pub is available
-    if ! command -v mosquitto_pub &> /dev/null; then
-        echo "Warning: mosquitto_pub not found. Skipping MQTT test."
-        echo "Please install mosquitto-clients: sudo apt-get install mosquitto-clients"
-        return 1
-    fi
-    
-    echo "Testing MQTT connection to $MQTT_HOSTNAME:8883..."
-    
-    # Create test message
-    local test_message='{"timestamp":"'$(date -Iseconds)'","temperature":23.5,"test":true}'
-    local test_topic="devices/client1-authnID/telemetry"
-    
-    # Test MQTT publish with certificate authentication
-    timeout 10 mosquitto_pub \
-        -h "$MQTT_HOSTNAME" \
-        -p 8883 \
-        --cert client1-authnID.pem \
-        --key client1-authnID.key \
-        --cafile intermediate_ca.crt \
-        -t "$test_topic" \
-        -m "$test_message" \
-        -q 1 \
-        --insecure 2>/dev/null
-    
-    test_result=$?
-    
-    if [ $test_result -eq 0 ]; then
-        echo "✓ MQTT connection test successful"
-        echo "  Published test message to topic: $test_topic"
-        return 0
-    else
-        echo "✗ MQTT connection test failed (exit code: $test_result)"
-        echo "  This may be expected if the MQTT endpoint is not yet fully configured"
-        return 1
-    fi
-}
-
-# Run MQTT test if hostname is available
 if [ -n "$MQTT_HOSTNAME" ] && [ "$MQTT_HOSTNAME" != "null" ]; then
-    test_mqtt_connection || echo "MQTT test completed with warnings"
+    echo "Running dedicated MQTT connection test..."
+    if [ -x "$SCRIPT_DIR/test_mqtt_connection.sh" ]; then
+        "$SCRIPT_DIR/test_mqtt_connection.sh" || echo "MQTT test completed with warnings"
+    else
+        echo "Warning: test_mqtt_connection.sh not found or not executable"
+    fi
 else
     echo "MQTT hostname not available. Skipping connection test."
 fi
