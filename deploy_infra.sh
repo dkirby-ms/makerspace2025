@@ -35,6 +35,16 @@ fi
 echo "Preparing certificate for deployment..."
 CA_CERT_CONTENT=$(cat intermediate_ca.crt)
 
+# Prepare intermediate private key for Bicep parameter
+echo "Preparing intermediate private key for deployment..."
+if [ -f ~/.step/secrets/intermediate_ca_key ]; then
+    INTERMEDIATE_KEY_CONTENT=$(cat ~/.step/secrets/intermediate_ca_key)
+else
+    echo "Warning: Intermediate private key not found at ~/.step/secrets/intermediate_ca_key"
+    echo "Using empty key content - certificate signing will not work"
+    INTERMEDIATE_KEY_CONTENT=""
+fi
+
 # Step 2: Create resource group
 echo "Step 2: Creating resource group..."
 az group create \
@@ -54,6 +64,7 @@ DEPLOYMENT_OUTPUT=$(az deployment group create \
         containerAppName="$CONTAINER_APP_NAME" \
         location="$LOCATION" \
         caCertificateContent="$CA_CERT_CONTENT" \
+        intermediatePrivateKeyContent="$INTERMEDIATE_KEY_CONTENT" \
         deployCaCertificate=true \
     --output json)
 

@@ -13,6 +13,13 @@ param eventGridNamespaceName string
 @description('Event Grid namespace resource group')
 param eventGridResourceGroupName string = resourceGroup().name
 
+@description('Intermediate certificate content (PEM format)')
+param intermediateCertificateContent string = ''
+
+@description('Intermediate CA private key content (PEM format)')
+@secure()
+param intermediatePrivateKeyContent string = ''
+
 // Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   name: containerRegistryName
@@ -72,6 +79,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'registry-password'
           value: containerRegistry.listCredentials().passwords[0].value
         }
+        {
+          name: 'intermediate-key'
+          value: intermediatePrivateKeyContent
+        }
       ]
     }
     template: {
@@ -95,6 +106,18 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'PORT'
               value: '3000'
+            }
+            {
+              name: 'INTERMEDIATE_CERT_CONTENT'
+              value: intermediateCertificateContent
+            }
+            {
+              name: 'INTERMEDIATE_KEY_CONTENT'
+              secretRef: 'intermediate-key'
+            }
+            {
+              name: 'USE_INTERMEDIATE_CA'
+              value: 'true'
             }
           ]
           resources: {

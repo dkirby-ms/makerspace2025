@@ -1,4 +1,5 @@
 import forge from 'node-forge';
+import fs from 'fs';
 
 export interface CertificateData {
   certificate: string;
@@ -37,7 +38,14 @@ export class CertificateManager {
   private caPrivateKey: forge.pki.PrivateKey | null = null;
   private serialNumber: number = 1;
 
-  constructor(private caSubject: string = '/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA') {}
+  constructor(
+    private caSubject: string = '/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA',
+    private useIntermediateCa: boolean = false,
+    private intermediateCertPath?: string,
+    private intermediateKeyPath?: string,
+    private intermediateCertContent?: string,
+    private intermediateKeyContent?: string
+  ) {}
 
   /**
    * Generate CA certificate and private key
@@ -190,6 +198,49 @@ export class CertificateManager {
   }
 
   /**
+   * Load intermediate CA certificate and private key from files or environment variables
+   */
+  loadIntermediateCertificate(): void {
+    try {
+      let certPem: string;
+      let keyPem: string;
+
+      // Try to load from environment variables first, then fall back to files
+      if (this.intermediateCertContent && this.intermediateKeyContent) {
+        console.log('Loading intermediate CA from environment variables');
+        certPem = this.intermediateCertContent;
+        keyPem = this.intermediateKeyContent;
+      } else if (this.intermediateCertPath && this.intermediateKeyPath) {
+        console.log('Loading intermediate CA from files');
+        // Check if files exist
+        if (!fs.existsSync(this.intermediateCertPath)) {
+          throw new Error(`Intermediate certificate file not found: ${this.intermediateCertPath}`);
+        }
+        if (!fs.existsSync(this.intermediateKeyPath)) {
+          throw new Error(`Intermediate private key file not found: ${this.intermediateKeyPath}`);
+        }
+        
+        certPem = fs.readFileSync(this.intermediateCertPath, 'utf8');
+        keyPem = fs.readFileSync(this.intermediateKeyPath, 'utf8');
+      } else {
+        throw new Error('Intermediate certificate content or file paths must be provided');
+      }
+
+      // Parse certificate and private key
+      this.caCert = forge.pki.certificateFromPem(certPem);
+      this.caPrivateKey = forge.pki.privateKeyFromPem(keyPem);
+
+      console.log('Intermediate CA certificate loaded successfully');
+      console.log(`Subject: ${this.caCert.subject.getField('CN')?.value}`);
+      console.log(`Issuer: ${this.caCert.issuer.getField('CN')?.value}`);
+      console.log(`Valid from: ${this.caCert.validity.notBefore}`);
+      console.log(`Valid to: ${this.caCert.validity.notAfter}`);
+    } catch (error) {
+      throw new Error(`Failed to load intermediate certificate: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
    * Get CA certificate in PEM format
    */
   getCaCertificatePem(): string {
@@ -197,6 +248,18 @@ export class CertificateManager {
       throw new Error('CA certificate not initialized');
     }
     return forge.pki.certificateToPem(this.caCert);
+  }
+
+  /**
+   * Initialize certificate manager based on configuration
+   */
+  initialize(): CaCertificateData | null {
+    if (this.useIntermediateCa) {
+      this.loadIntermediateCertificate();
+      return null; // No need to return certificate data as it's already loaded
+    } else {
+      return this.generateCaCertificate();
+    }
   }
 
   /**

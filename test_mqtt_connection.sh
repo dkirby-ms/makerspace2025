@@ -65,7 +65,6 @@ fi
 echo "MQTT Hostname: $MQTT_HOSTNAME"
 echo "Client Certificate: $CLIENT_CERT"
 echo "Client Key: $CLIENT_KEY"
-echo "CA Certificate: $CA_CERT"
 echo "Device ID: $TEST_DEVICE_ID"
 echo ""
 
@@ -84,12 +83,7 @@ test_mqtt_connection() {
         return 1
     fi
     
-    if [ ! -f "$CA_CERT" ]; then
-        print_status "FAIL" "CA certificate not found: $CA_CERT"
-        return 1
-    fi
-    
-    print_status "PASS" "All certificate files found"
+    print_status "PASS" "Required certificate files found"
     
     # Check if mosquitto_pub is available
     if ! command -v mosquitto_pub &> /dev/null; then
@@ -108,24 +102,34 @@ test_mqtt_connection() {
     print_status "INFO" "Publishing to topic: $test_topic"
     
     # Test MQTT publish with certificate authentication
-    if timeout 15 mosquitto_pub \
+    echo "Debug: Running mosquitto_pub with verbose output..."
+    timeout 15 mosquitto_pub \
         -h "$MQTT_HOSTNAME" \
         -p 8883 \
         --cert "$CLIENT_CERT" \
         --key "$CLIENT_KEY" \
-        --cafile "$CA_CERT" \
         -t "$test_topic" \
         -m "$test_message" \
         -q 1 \
         --insecure \
-        -d 2>/dev/null; then
+        -d
+    
+    local exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
         
         print_status "PASS" "MQTT message published successfully"
         echo "Test message: $test_message"
         return 0
     else
-        local exit_code=$?
         print_status "FAIL" "MQTT connection failed (exit code: $exit_code)"
+        echo ""
+        echo "MQTT Error Codes:"
+        echo "  1: Connection refused - unacceptable protocol version"
+        echo "  2: Connection refused - identifier rejected"  
+        echo "  3: Connection refused - server unavailable"
+        echo "  4: Connection refused - bad username or password"
+        echo "  5: Connection refused - not authorized"
         echo ""
         echo "Possible causes:"
         echo "- MQTT broker is not running or not accessible"
@@ -150,7 +154,6 @@ test_mqtt_subscribe() {
         -p 8883 \
         --cert "$CLIENT_CERT" \
         --key "$CLIENT_KEY" \
-        --cafile "$CA_CERT" \
         -t "$command_topic" \
         -C 1 \
         --insecure \

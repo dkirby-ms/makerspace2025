@@ -23,7 +23,14 @@ class ServiceContainer {
 
   get certificateManager(): CertificateManager {
     if (!this._certificateManager) {
-      this._certificateManager = new CertificateManager(CONFIG.certificates.caSubject);
+      this._certificateManager = new CertificateManager(
+        CONFIG.certificates.caSubject,
+        CONFIG.certificates.useIntermediateCa,
+        CONFIG.certificates.intermediateCertPath,
+        CONFIG.certificates.intermediateKeyPath,
+        CONFIG.certificates.intermediateCertContent,
+        CONFIG.certificates.intermediateKeyContent
+      );
     }
     return this._certificateManager;
   }
@@ -53,9 +60,15 @@ const services = ServiceContainer.getInstance();
 // Initialize CA certificate
 async function initializeCa(): Promise<void> {
   try {
-    console.log('Generating CA certificate...');
-    services.caCertificateData = services.certificateManager.generateCaCertificate();
-    console.log('CA certificate generated successfully');
+    if (CONFIG.certificates.useIntermediateCa) {
+      console.log('Loading intermediate CA certificate...');
+      services.certificateManager.initialize();
+      console.log('Intermediate CA certificate loaded successfully');
+    } else {
+      console.log('Generating CA certificate...');
+      services.caCertificateData = services.certificateManager.initialize();
+      console.log('CA certificate generated successfully');
+    }
   } catch (error) {
     console.error('Failed to initialize CA certificate:', error);
     throw error;
@@ -64,17 +77,6 @@ async function initializeCa(): Promise<void> {
 
 // Initialize CA on startup
 initializeCa().catch(console.error);
-
-// Get CA certificate
-router.get('/ca-certificate', (req: Request, res: Response) => {
-  if (!services.caCertificateData) {
-    return res.status(500).json({ error: 'CA certificate not initialized' });
-  }
-
-  res.setHeader('Content-Type', 'application/x-pem-file');
-  res.setHeader('Content-Disposition', 'attachment; filename="ca-certificate.pem"');
-  res.send(services.caCertificateData.certificate);
-});
 
 // Register new device
 router.post('/register-device', asyncHandler(async (req: Request, res: Response) => {
@@ -85,7 +87,8 @@ router.post('/register-device', asyncHandler(async (req: Request, res: Response)
     return res.status(400).json({ error: validation.error });
   }
 
-  if (!services.caCertificateData) {
+  // Check if CA is initialized (only needed for self-generated CA)
+  if (!CONFIG.certificates.useIntermediateCa && !services.caCertificateData) {
     return res.status(500).json({ error: 'CA certificate not initialized' });
   }
 

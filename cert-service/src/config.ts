@@ -12,13 +12,21 @@ export interface ServiceConfig {
   certificates: {
     caSubject: string;
     validityDays: number;
+    intermediateCertPath: string;
+    intermediateKeyPath: string;
+    intermediateCertContent: string;
+    intermediateKeyContent: string;
+    useIntermediateCa: boolean;
   };
 }
 
 const DEFAULT_VALUES = {
   PORT: 3000,
   CA_SUBJECT: '/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA',
-  CERT_VALIDITY_DAYS: 365
+  CERT_VALIDITY_DAYS: 365,
+  INTERMEDIATE_CERT_PATH: '/home/saitcho/makerspace2025/intermediate_ca.crt',
+  INTERMEDIATE_KEY_PATH: '/home/saitcho/.step/secrets/intermediate_ca_key',
+  USE_INTERMEDIATE_CA: true
 } as const;
 
 export const CONFIG: ServiceConfig = {
@@ -30,7 +38,12 @@ export const CONFIG: ServiceConfig = {
   },
   certificates: {
     caSubject: process.env.CA_CERT_SUBJECT || DEFAULT_VALUES.CA_SUBJECT,
-    validityDays: parseInt(process.env.CERT_VALIDITY_DAYS || DEFAULT_VALUES.CERT_VALIDITY_DAYS.toString(), 10)
+    validityDays: parseInt(process.env.CERT_VALIDITY_DAYS || DEFAULT_VALUES.CERT_VALIDITY_DAYS.toString(), 10),
+    intermediateCertPath: process.env.INTERMEDIATE_CERT_PATH || DEFAULT_VALUES.INTERMEDIATE_CERT_PATH,
+    intermediateKeyPath: process.env.INTERMEDIATE_KEY_PATH || DEFAULT_VALUES.INTERMEDIATE_KEY_PATH,
+    intermediateCertContent: process.env.INTERMEDIATE_CERT_CONTENT || '',
+    intermediateKeyContent: process.env.INTERMEDIATE_KEY_CONTENT || '',
+    useIntermediateCa: process.env.USE_INTERMEDIATE_CA === 'false' ? false : DEFAULT_VALUES.USE_INTERMEDIATE_CA
   }
 };
 
@@ -70,5 +83,15 @@ export function validateConfig(): void {
   // Validate certificate validity days
   if (isNaN(CONFIG.certificates.validityDays) || CONFIG.certificates.validityDays < 1) {
     throw new Error('Certificate validity days must be a positive number');
+  }
+
+  // Validate intermediate certificate configuration if using intermediate CA
+  if (CONFIG.certificates.useIntermediateCa) {
+    if (!CONFIG.certificates.intermediateCertPath) {
+      throw new Error('Intermediate certificate path is required when using intermediate CA');
+    }
+    if (!CONFIG.certificates.intermediateKeyPath) {
+      throw new Error('Intermediate key path is required when using intermediate CA');
+    }
   }
 }

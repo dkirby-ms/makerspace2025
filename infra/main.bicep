@@ -10,6 +10,10 @@ param location string = resourceGroup().location
 @description('Base64 encoded CA certificate content')
 param caCertificateContent string
 
+@description('Intermediate CA private key content (PEM format)')
+@secure()
+param intermediatePrivateKeyContent string = ''
+
 @description('Deploy CA certificate (defaults to true when certificate content is provided)')
 param deployCaCertificate bool = true
 
@@ -30,6 +34,8 @@ module containerApp 'containerApps.bicep' = {
     location: location
     eventGridNamespaceName: eventGridNamespaceName
     eventGridResourceGroupName: resourceGroup().name
+    intermediateCertificateContent: caCertificateContent
+    intermediatePrivateKeyContent: intermediatePrivateKeyContent
   }
 }
 
