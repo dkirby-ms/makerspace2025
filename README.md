@@ -91,17 +91,27 @@ az deployment group create \
 
 #### 3. Deploy Certificate Service
 
-```bash
-# Get container registry name from deployment output
-REGISTRY_NAME=$(az deployment group show \
-  --resource-group rg-makerspace2025 \
-  --name main \
-  --query "properties.outputs.containerRegistryName.value" \
-  --output tsv)
+First, set up your environment variables:
 
-# Deploy certificate service
-./deploy_cert_service.sh rg-makerspace2025 "$REGISTRY_NAME"
+```bash
+# Copy and customize environment template
+cp .env.template .env
+# Edit .env file with your specific values, or use existing .env.test
+
+# Required environment variables:
+# CONTAINER_REGISTRY_NAME - Your Azure Container Registry name  
+# RESOURCE_GROUP - Azure resource group (default: rg-makerspace2025)
+# CONTAINER_APP_NAME - Container app name (default: makerspace-cert-service)
 ```
+
+Then deploy the certificate service:
+
+```bash
+# Deploy certificate service using environment variables
+./deploy_cert_service.sh
+```
+
+The script will automatically load environment variables from `.env` or `.env.test` files.
 
 ### Testing the Deployment
 

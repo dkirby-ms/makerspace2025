@@ -1,82 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { CertificateManager } from '../certificateManager';
-import { EventGridClientManager } from '../eventGridClient';
+import { ServiceContainer } from '../services';
 import { CONFIG } from '../config';
 import { asyncHandler } from '../middleware';
 import { validateDeviceId, formatErrorResponse, generateAuthenticationName } from '../utils';
 
 const router = Router();
 
-// Service container for better dependency management
-class ServiceContainer {
-  private static instance: ServiceContainer;
-  private _certificateManager: CertificateManager | null = null;
-  private _eventGridManager: EventGridClientManager | null = null;
-  private _caCertificateData: any = null;
-
-  static getInstance(): ServiceContainer {
-    if (!ServiceContainer.instance) {
-      ServiceContainer.instance = new ServiceContainer();
-    }
-    return ServiceContainer.instance;
-  }
-
-  get certificateManager(): CertificateManager {
-    if (!this._certificateManager) {
-      this._certificateManager = new CertificateManager(
-        CONFIG.certificates.caSubject,
-        CONFIG.certificates.useIntermediateCa,
-        CONFIG.certificates.intermediateCertPath,
-        CONFIG.certificates.intermediateKeyPath,
-        CONFIG.certificates.intermediateCertContent,
-        CONFIG.certificates.intermediateKeyContent
-      );
-    }
-    return this._certificateManager;
-  }
-
-  get eventGridManager(): EventGridClientManager {
-    if (!this._eventGridManager) {
-      this._eventGridManager = new EventGridClientManager(
-        CONFIG.eventGrid.subscriptionId,
-        CONFIG.eventGrid.resourceGroup,
-        CONFIG.eventGrid.namespaceName
-      );
-    }
-    return this._eventGridManager;
-  }
-
-  get caCertificateData(): any {
-    return this._caCertificateData;
-  }
-
-  set caCertificateData(data: any) {
-    this._caCertificateData = data;
-  }
-}
-
 const services = ServiceContainer.getInstance();
-
-// Initialize CA certificate
-async function initializeCa(): Promise<void> {
-  try {
-    if (CONFIG.certificates.useIntermediateCa) {
-      console.log('Loading intermediate CA certificate...');
-      services.certificateManager.initialize();
-      console.log('Intermediate CA certificate loaded successfully');
-    } else {
-      console.log('Generating CA certificate...');
-      services.caCertificateData = services.certificateManager.initialize();
-      console.log('CA certificate generated successfully');
-    }
-  } catch (error) {
-    console.error('Failed to initialize CA certificate:', error);
-    throw error;
-  }
-}
-
-// Initialize CA on startup
-initializeCa().catch(console.error);
 
 // Register new device
 router.post('/register-device', asyncHandler(async (req: Request, res: Response) => {

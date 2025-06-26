@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG, validateConfig } from './config';
 import { routes } from './routes';
 import { errorHandler } from './middleware';
+import { initializeCa } from './services';
 
 const app = express();
 const PORT = CONFIG.port;
@@ -127,12 +128,27 @@ process.on('SIGTERM', () => {
   });
 });
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 Makerspace Certificate Service running on port ${PORT}`);
-  console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔐 Event Grid Namespace: ${CONFIG.eventGrid.namespaceName}`);
-  console.log(`🚢 App Deployment: ENABLED`);
-});
+// Start server with proper CA initialization  
+async function startServer(): Promise<void> {
+  try {
+    // Initialize CA first
+    await initializeCa();
+    
+    // Start server after CA is ready
+    server.listen(PORT, () => {
+      console.log(`🚀 Makerspace Certificate Service running on port ${PORT}`);
+      console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔐 Event Grid Namespace: ${CONFIG.eventGrid.namespaceName}`);
+      console.log(`🚢 App Deployment: ENABLED`);
+      console.log(`✅ CA initialized and ready for device registration`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the application
+startServer();
 
 export { app, server };

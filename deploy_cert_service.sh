@@ -6,14 +6,33 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Parameters
-RESOURCE_GROUP="${1:-rg-makerspace2025}"
-CONTAINER_REGISTRY_NAME="${2}"
-CONTAINER_APP_NAME="${3:-makerspace-cert-service}"
+# Load environment variables from .env file if it exists
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    echo "Loading environment variables from .env file..."
+    export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
+elif [ -f "$SCRIPT_DIR/.env.test" ]; then
+    echo "Loading environment variables from .env.test file..."
+    source "$SCRIPT_DIR/.env.test"
+else
+    echo "No .env file found. Copy .env.template to .env and customize values."
+fi
 
+# Parameters from environment variables with defaults
+RESOURCE_GROUP="${RESOURCE_GROUP:-rg-makerspace2025}"
+CONTAINER_REGISTRY_NAME="${CONTAINER_REGISTRY_NAME}"
+CONTAINER_APP_NAME="${CONTAINER_APP_NAME:-makerspace-cert-service}"
+
+# Validate required environment variables
 if [ -z "$CONTAINER_REGISTRY_NAME" ]; then
     echo "Error: Container registry name is required"
-    echo "Usage: $0 <resource-group> <container-registry-name> [container-app-name]"
+    echo "Set CONTAINER_REGISTRY_NAME environment variable or include it in .env file"
+    echo ""
+    echo "Required environment variables:"
+    echo "  CONTAINER_REGISTRY_NAME - Azure Container Registry name"
+    echo ""
+    echo "Optional environment variables:"
+    echo "  RESOURCE_GROUP - Azure resource group (default: rg-makerspace2025)"
+    echo "  CONTAINER_APP_NAME - Container app name (default: makerspace-cert-service)"
     exit 1
 fi
 
