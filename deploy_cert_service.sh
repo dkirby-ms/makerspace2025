@@ -18,7 +18,8 @@ else
 fi
 
 # Parameters from environment variables with defaults
-RESOURCE_GROUP="${RESOURCE_GROUP:-rg-makerspace2025}"
+# Map EVENTGRID_RESOURCE_GROUP to RESOURCE_GROUP for compatibility
+RESOURCE_GROUP="${RESOURCE_GROUP:-${EVENTGRID_RESOURCE_GROUP:-rg-makerspace2025}}"
 CONTAINER_REGISTRY_NAME="${CONTAINER_REGISTRY_NAME}"
 CONTAINER_APP_NAME="${CONTAINER_APP_NAME:-makerspace-cert-service}"
 

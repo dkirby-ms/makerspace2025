@@ -82,6 +82,11 @@ fi
 
 # Step 2: Create resource group
 echo "Step 2: Creating resource group..."
+
+# Get current Azure subscription ID
+AZURE_SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+echo "Using Azure Subscription: $AZURE_SUBSCRIPTION_ID"
+
 az group create \
     --name "$RESOURCE_GROUP" \
     --location "$LOCATION" \
@@ -125,15 +130,24 @@ export CERT_SERVICE_URL="$CONTAINER_APP_URL"
 export MQTT_HOSTNAME="$MQTT_HOSTNAME"
 
 # Resource Configuration
-export RESOURCE_GROUP="$RESOURCE_GROUP"
+export EVENTGRID_RESOURCE_GROUP="$RESOURCE_GROUP"
 export CONTAINER_REGISTRY_NAME="$CONTAINER_REGISTRY_NAME"
-export EVENTGRID_NAMESPACE="$EVENTGRID_NAMESPACE"
+export EVENTGRID_NAMESPACE_NAME="$EVENTGRID_NAMESPACE"
+export AZURE_SUBSCRIPTION_ID="$AZURE_SUBSCRIPTION_ID"
 
 # Certificate Files
 export CLIENT_CERT="certs/client1-authnID.pem"
 export CLIENT_KEY="certs/client1-authnID.key" 
 export CA_CERT="certs/intermediate_ca.crt"
 export ROOT_CA_CERT="certs/root_ca.crt"
+
+# Certificate Service Configuration
+export INTERMEDIATE_CERT_PATH="/home/saitcho/makerspace2025/certs/intermediate_ca.crt"
+export INTERMEDIATE_KEY_PATH="/home/saitcho/.step/secrets/intermediate_ca_key"
+export CA_CERT_SUBJECT="/C=US/ST=CA/L=SanFrancisco/O=Makerspace/OU=IT/CN=Makerspace CA"
+export CERT_VALIDITY_DAYS=365
+export USE_INTERMEDIATE_CA=true
+export PORT=3000
 
 # Test Configuration
 export TEST_TIMEOUT=60
