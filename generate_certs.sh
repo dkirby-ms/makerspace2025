@@ -51,7 +51,7 @@ cd "$CERTS_DIR"
 
 # Initialize step CA if not already done
 if [ ! -d ~/.step ]; then
-    echo "Initializing Certificate Authority with RSA keys..."
+    echo "Initializing Certificate Authority..."
     if [ -n "$CA_PASSWORD" ]; then
         echo "Using provided password for CA initialization..."
         echo "$CA_PASSWORD" | step ca init \
@@ -72,6 +72,40 @@ if [ ! -d ~/.step ]; then
     fi
     
     echo "CA initialization completed."
+    echo "Note: The intermediate CA was created with EC keys. Regenerating with RSA..."
+    
+    # Backup the existing intermediate CA
+    mv ~/.step/certs/intermediate_ca.crt ~/.step/certs/intermediate_ca_ec.crt.bak
+    mv ~/.step/secrets/intermediate_ca_key ~/.step/secrets/intermediate_ca_key_ec.bak
+    
+    # Generate new RSA intermediate CA
+    if [ -n "$CA_PASSWORD" ]; then
+        echo "$CA_PASSWORD" | step certificate create \
+            "$CA_NAME Intermediate CA" \
+            ~/.step/certs/intermediate_ca.crt \
+            ~/.step/secrets/intermediate_ca_key \
+            --profile intermediate-ca \
+            --ca ~/.step/certs/root_ca.crt \
+            --ca-key ~/.step/secrets/root_ca_key \
+            --ca-password-file /dev/stdin \
+            --no-password \
+            --insecure \
+            --kty RSA \
+            --size 2048
+    else
+        step certificate create \
+            "$CA_NAME Intermediate CA" \
+            ~/.step/certs/intermediate_ca.crt \
+            ~/.step/secrets/intermediate_ca_key \
+            --profile intermediate-ca \
+            --ca ~/.step/certs/root_ca.crt \
+            --ca-key ~/.step/secrets/root_ca_key \
+            --no-password \
+            --insecure \
+            --kty RSA \
+            --size 2048
+    fi
+    echo "RSA intermediate CA generated successfully."
 else
     echo "CA already exists, skipping initialization."
 fi
@@ -88,6 +122,8 @@ if [ ! -f "${CLIENT_AUTHN_ID}.pem" ]; then
             --ca ~/.step/certs/intermediate_ca.crt \
             --ca-key ~/.step/secrets/intermediate_ca_key \
             --ca-password-file /dev/stdin \
+            --kty RSA \
+            --size 2048 \
             --no-password \
             --insecure \
             --not-after 2400h
@@ -99,6 +135,8 @@ if [ ! -f "${CLIENT_AUTHN_ID}.pem" ]; then
             "${CLIENT_AUTHN_ID}.key" \
             --ca ~/.step/certs/intermediate_ca.crt \
             --ca-key ~/.step/secrets/intermediate_ca_key \
+            --kty RSA \
+            --size 2048 \
             --no-password \
             --insecure \
             --not-after 2400h
