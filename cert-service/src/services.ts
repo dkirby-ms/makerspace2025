@@ -33,9 +33,9 @@ export class ServiceContainer {
   get eventGridManager(): EventGridClientManager {
     if (!this._eventGridManager) {
       this._eventGridManager = new EventGridClientManager(
-        CONFIG.eventGrid.namespaceName,
+        CONFIG.eventGrid.subscriptionId,
         CONFIG.eventGrid.resourceGroup,
-        CONFIG.eventGrid.subscriptionId
+        CONFIG.eventGrid.namespaceName
       );
     }
     return this._eventGridManager;
