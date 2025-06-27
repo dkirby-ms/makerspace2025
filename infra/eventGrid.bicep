@@ -76,9 +76,7 @@ resource deviceTopicSpace 'Microsoft.EventGrid/namespaces/topicSpaces@2023-12-15
   properties: {
     description: 'Topic space for device communication'
     topicTemplates: [
-      'devices/+/telemetry'
-      'devices/+/commands'
-      'devices/+/status'
+      'devices/#'
     ]
   }
 }
