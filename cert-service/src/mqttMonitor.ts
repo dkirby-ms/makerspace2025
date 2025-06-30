@@ -13,6 +13,7 @@ export interface MqttMessage {
 export class MqttTopicMonitor extends EventEmitter {
   private client: mqtt.MqttClient | null = null;
   private messages: Map<string, MqttMessage[]> = new Map();
+  private subscribedTopics: Set<string> = new Set();
   private maxMessagesPerTopic = 100;
   private isConnected = false;
 
@@ -120,6 +121,7 @@ export class MqttTopicMonitor extends EventEmitter {
           reject(error);
         } else {
           console.log(`Subscribed to topic: ${topic}`);
+          this.subscribedTopics.add(topic);
           resolve();
         }
       });
@@ -138,6 +140,7 @@ export class MqttTopicMonitor extends EventEmitter {
           reject(error);
         } else {
           console.log(`Unsubscribed from topic: ${topic}`);
+          this.subscribedTopics.delete(topic);
           resolve();
         }
       });
@@ -153,10 +156,7 @@ export class MqttTopicMonitor extends EventEmitter {
   }
 
   getSubscribedTopics(): string[] {
-    if (!this.client || !this.isConnected) {
-      return [];
-    }
-    return Object.keys(this.client.getLastMessageId ? this.client.getLastMessageId() : {});
+    return Array.from(this.subscribedTopics);
   }
 
   isClientConnected(): boolean {
@@ -168,6 +168,7 @@ export class MqttTopicMonitor extends EventEmitter {
       return new Promise((resolve) => {
         this.client!.end(false, {}, () => {
           this.isConnected = false;
+          this.subscribedTopics.clear();
           console.log('MQTT Monitor disconnected');
           resolve();
         });

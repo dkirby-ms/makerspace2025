@@ -441,6 +441,13 @@ body {
     word-break: break-all;
 }
 
+.message-metadata {
+    color: #888;
+    font-size: 0.75em;
+    margin-top: 5px;
+    font-style: italic;
+}
+
 .connection-status {
     display: inline-block;
     padding: 4px 8px;

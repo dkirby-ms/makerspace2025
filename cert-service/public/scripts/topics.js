@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = `${protocol}//${window.location.host}`;
     
     ws = new WebSocket(wsUrl);
     
@@ -24,7 +24,13 @@ function initWebSocket() {
     ws.onmessage = function(event) {
         try {
             const message = JSON.parse(event.data);
-            addMessageToList(message);
+            console.log('WebSocket message received:', message);
+            
+            if (message.type === 'mqtt-message') {
+                addMessageToList(message);
+            } else if (message.type === 'connected') {
+                console.log('WebSocket connection confirmed');
+            }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);
         }
@@ -142,10 +148,17 @@ function addMessageToList(message) {
     
     const messageEl = document.createElement('div');
     messageEl.className = 'message-item';
+    
+    // Handle both MQTT message format and direct message format
+    const topic = message.topic || 'Unknown Topic';
+    const payload = message.payload || JSON.stringify(message);
+    const timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
+    
     messageEl.innerHTML = `
-        <div class="message-topic">${message.topic}</div>
-        <div class="message-timestamp">${new Date(message.timestamp).toLocaleString()}</div>
-        <div class="message-payload">${JSON.stringify(message.payload, null, 2)}</div>
+        <div class="message-topic">${topic}</div>
+        <div class="message-timestamp">${timestamp.toLocaleString()}</div>
+        <div class="message-payload">${typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)}</div>
+        <div class="message-metadata">QoS: ${message.qos || 0} | Retain: ${message.retain || false}</div>
     `;
     
     // Add to the top of the list

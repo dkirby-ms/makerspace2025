@@ -18,6 +18,16 @@ export interface ServiceConfig {
     intermediateKeyContent: string;
     useIntermediateCa: boolean;
   };
+  mqtt: {
+    brokerHost: string;
+    clientCertPath: string;
+    clientKeyPath: string;
+    caCertPath: string;
+    clientCertContent: string;
+    clientKeyContent: string;
+    caCertContent: string;
+    clientId: string;
+  };
 }
 
 const DEFAULT_VALUES = {
@@ -26,7 +36,12 @@ const DEFAULT_VALUES = {
   CERT_VALIDITY_DAYS: 365,
   INTERMEDIATE_CERT_PATH: '/home/saitcho/makerspace2025/intermediate_ca.crt',
   INTERMEDIATE_KEY_PATH: '/home/saitcho/.step/secrets/intermediate_ca_key',
-  USE_INTERMEDIATE_CA: true
+  USE_INTERMEDIATE_CA: true,
+  MQTT_BROKER_HOST: '',
+  MQTT_CLIENT_CERT_PATH: '/home/saitcho/makerspace2025/certs/client1-authnID.pem',
+  MQTT_CLIENT_KEY_PATH: '/home/saitcho/makerspace2025/certs/client1-authnID.key',
+  MQTT_CA_CERT_PATH: '/home/saitcho/makerspace2025/certs/root_ca.crt',
+  MQTT_CLIENT_ID: 'cert-service-monitor'
 } as const;
 
 export const CONFIG: ServiceConfig = {
@@ -44,6 +59,16 @@ export const CONFIG: ServiceConfig = {
     intermediateCertContent: process.env.INTERMEDIATE_CERT_CONTENT || '',
     intermediateKeyContent: process.env.INTERMEDIATE_KEY_CONTENT || '',
     useIntermediateCa: process.env.USE_INTERMEDIATE_CA === 'false' ? false : DEFAULT_VALUES.USE_INTERMEDIATE_CA
+  },
+  mqtt: {
+    brokerHost: process.env.MQTT_BROKER_HOST || `${process.env.EVENTGRID_NAMESPACE_NAME}.westus2-1.ts.eventgrid.azure.net`,
+    clientCertPath: process.env.MQTT_CLIENT_CERT_PATH || DEFAULT_VALUES.MQTT_CLIENT_CERT_PATH,
+    clientKeyPath: process.env.MQTT_CLIENT_KEY_PATH || DEFAULT_VALUES.MQTT_CLIENT_KEY_PATH,
+    caCertPath: process.env.MQTT_CA_CERT_PATH || DEFAULT_VALUES.MQTT_CA_CERT_PATH,
+    clientCertContent: process.env.MQTT_CLIENT_CERT_CONTENT || '',
+    clientKeyContent: process.env.MQTT_CLIENT_KEY_CONTENT || '',
+    caCertContent: process.env.MQTT_CA_CERT_CONTENT || '',
+    clientId: process.env.MQTT_CLIENT_ID || DEFAULT_VALUES.MQTT_CLIENT_ID
   }
 };
 
@@ -93,5 +118,10 @@ export function validateConfig(): void {
     if (!CONFIG.certificates.intermediateKeyPath) {
       throw new Error('Intermediate key path is required when using intermediate CA');
     }
+  }
+
+  // Validate MQTT configuration
+  if (!CONFIG.mqtt.brokerHost) {
+    console.warn('MQTT broker host not configured - Live Messages will not work');
   }
 }

@@ -9,6 +9,7 @@ import { CONFIG, validateConfig } from './config';
 import { routes } from './routes';
 import { errorHandler } from './middleware';
 import { initializeCa } from './services';
+import { mqttMonitor } from './routes/topics';
 
 const app = express();
 const PORT = CONFIG.port;
@@ -62,8 +63,12 @@ interface WebSocketMessage {
   [key: string]: any;
 }
 
+// Track connected WebSocket clients
+const connectedClients = new Set<WebSocket>();
+
 wss.on('connection', (ws: WebSocket) => {
   console.log('WebSocket client connected');
+  connectedClients.add(ws);
   
   ws.on('message', (message: Buffer) => {
     try {
@@ -83,6 +88,12 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('close', () => {
     console.log('WebSocket client disconnected');
+    connectedClients.delete(ws);
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+    connectedClients.delete(ws);
   });
 
   // Send initial connection confirmation
@@ -119,6 +130,26 @@ function handleWebSocketMessage(ws: WebSocket, data: WebSocketMessage): void {
   }
 }
 
+// Function to broadcast MQTT messages to all connected WebSocket clients
+function broadcastMqttMessage(mqttMessage: any): void {
+  const message = JSON.stringify({
+    type: 'mqtt-message',
+    ...mqttMessage,
+    timestamp: Date.now()
+  });
+
+  connectedClients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(message);
+      } catch (error) {
+        console.error('Error sending message to WebSocket client:', error);
+        connectedClients.delete(client);
+      }
+    }
+  });
+}
+
 // Graceful shutdown handler
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
@@ -141,11 +172,29 @@ async function startServer(): Promise<void> {
       console.log(`🔐 Event Grid Namespace: ${CONFIG.eventGrid.namespaceName}`);
       console.log(`🚢 App Deployment: ENABLED`);
       console.log(`✅ CA initialized and ready for device registration`);
+      
+      // Set up MQTT message forwarding after server is started
+      setupMqttMessageForwarding();
     });
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
+}
+
+// Set up MQTT message forwarding to WebSocket clients
+function setupMqttMessageForwarding(): void {
+  // Wait a bit for the routes to be loaded and MQTT monitor to be available
+  setTimeout(() => {
+    if (mqttMonitor) {
+      mqttMonitor.on('message', (mqttMessage) => {
+        broadcastMqttMessage(mqttMessage);
+      });
+      console.log('🔗 MQTT message forwarding to WebSocket clients enabled');
+    } else {
+      console.log('⚠️ MQTT monitor not available - real-time messages disabled');
+    }
+  }, 1000);
 }
 
 // Start the application
