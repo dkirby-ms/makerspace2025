@@ -14,6 +14,18 @@ param caCertificateContent string
 @secure()
 param intermediatePrivateKeyContent string = ''
 
+@description('MQTT client certificate content (PEM format)')
+@secure()
+param mqttClientCertificateContent string = ''
+
+@description('MQTT client private key content (PEM format)')
+@secure()
+param mqttClientPrivateKeyContent string = ''
+
+@description('MQTT CA certificate content (PEM format)')
+@secure()
+param mqttCaCertificateContent string = ''
+
 @description('Deploy CA certificate (defaults to true when certificate content is provided)')
 param deployCaCertificate bool = true
 
@@ -36,6 +48,9 @@ module containerApp 'containerApps.bicep' = {
     eventGridResourceGroupName: resourceGroup().name
     intermediateCertificateContent: caCertificateContent
     intermediatePrivateKeyContent: intermediatePrivateKeyContent
+    mqttClientCertificateContent: mqttClientCertificateContent
+    mqttClientPrivateKeyContent: mqttClientPrivateKeyContent
+    mqttCaCertificateContent: mqttCaCertificateContent
   }
 }
 

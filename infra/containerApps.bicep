@@ -20,6 +20,18 @@ param intermediateCertificateContent string = ''
 @secure()
 param intermediatePrivateKeyContent string = ''
 
+@description('MQTT client certificate content (PEM format)')
+@secure()
+param mqttClientCertificateContent string = ''
+
+@description('MQTT client private key content (PEM format)')
+@secure()
+param mqttClientPrivateKeyContent string = ''
+
+@description('MQTT CA certificate content (PEM format)')
+@secure()
+param mqttCaCertificateContent string = ''
+
 // Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   name: containerRegistryName
@@ -83,6 +95,18 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'intermediate-key'
           value: intermediatePrivateKeyContent
         }
+        {
+          name: 'mqtt-client-cert'
+          value: mqttClientCertificateContent
+        }
+        {
+          name: 'mqtt-client-key'
+          value: mqttClientPrivateKeyContent
+        }
+        {
+          name: 'mqtt-ca-cert'
+          value: mqttCaCertificateContent
+        }
       ]
     }
     template: {
@@ -118,6 +142,18 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'USE_INTERMEDIATE_CA'
               value: 'true'
+            }
+            {
+              name: 'MQTT_CLIENT_CERT_CONTENT'
+              secretRef: 'mqtt-client-cert'
+            }
+            {
+              name: 'MQTT_CLIENT_KEY_CONTENT'
+              secretRef: 'mqtt-client-key'
+            }
+            {
+              name: 'MQTT_CA_CERT_CONTENT'
+              secretRef: 'mqtt-ca-cert'
             }
           ]
           resources: {

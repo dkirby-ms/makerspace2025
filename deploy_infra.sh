@@ -80,6 +80,29 @@ else
     INTERMEDIATE_KEY_CONTENT=""
 fi
 
+# Prepare MQTT certificates for Bicep parameters
+echo "Preparing MQTT certificates for deployment..."
+if [ -f "./certs/client1-authnID.pem" ]; then
+    MQTT_CLIENT_CERT_CONTENT=$(cat ./certs/client1-authnID.pem)
+else
+    echo "Warning: MQTT client certificate not found at ./certs/client1-authnID.pem"
+    MQTT_CLIENT_CERT_CONTENT=""
+fi
+
+if [ -f "./certs/client1-authnID.key" ]; then
+    MQTT_CLIENT_KEY_CONTENT=$(cat ./certs/client1-authnID.key)
+else
+    echo "Warning: MQTT client key not found at ./certs/client1-authnID.key"
+    MQTT_CLIENT_KEY_CONTENT=""
+fi
+
+if [ -f "./certs/root_ca.crt" ]; then
+    MQTT_CA_CERT_CONTENT=$(cat ./certs/root_ca.crt)
+else
+    echo "Warning: MQTT CA certificate not found at ./certs/root_ca.crt"
+    MQTT_CA_CERT_CONTENT=""
+fi
+
 # Step 2: Create resource group
 echo "Step 2: Creating resource group..."
 
@@ -105,6 +128,9 @@ DEPLOYMENT_OUTPUT=$(az deployment group create \
         location="$LOCATION" \
         caCertificateContent="$CA_CERT_CONTENT" \
         intermediatePrivateKeyContent="$INTERMEDIATE_KEY_CONTENT" \
+        mqttClientCertificateContent="$MQTT_CLIENT_CERT_CONTENT" \
+        mqttClientPrivateKeyContent="$MQTT_CLIENT_KEY_CONTENT" \
+        mqttCaCertificateContent="$MQTT_CA_CERT_CONTENT" \
         deployCaCertificate=true \
     --output json)
 
@@ -153,6 +179,13 @@ export PORT=3000
 export TEST_TIMEOUT=60
 export TEST_VERBOSE=true
 export TEST_DEVICE_ID="client1-authnID"
+
+# Certificate Content (for environment variable based config)
+export INTERMEDIATE_CERT_CONTENT="$CA_CERT_CONTENT"
+export INTERMEDIATE_KEY_CONTENT="$INTERMEDIATE_KEY_CONTENT"
+export MQTT_CLIENT_CERT_CONTENT="$MQTT_CLIENT_CERT_CONTENT"
+export MQTT_CLIENT_KEY_CONTENT="$MQTT_CLIENT_KEY_CONTENT"
+export MQTT_CA_CERT_CONTENT="$MQTT_CA_CERT_CONTENT"
 EOF
 
 echo "Test environment file updated: .env.test"

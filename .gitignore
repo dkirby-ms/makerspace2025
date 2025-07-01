@@ -58,3 +58,4 @@ Thumbs.db
 **/node_modules/
 cert-service/coverage/*
 cert-service/coverage/lcov.info
+.env.test
