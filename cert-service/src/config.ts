@@ -27,6 +27,7 @@ export interface ServiceConfig {
     clientKeyContent: string;
     caCertContent: string;
     clientId: string;
+    monitorTopic: string;
   };
 }
 
@@ -41,7 +42,8 @@ const DEFAULT_VALUES = {
   MQTT_CLIENT_CERT_PATH: '/home/saitcho/makerspace2025/certs/client1-authnID.pem',
   MQTT_CLIENT_KEY_PATH: '/home/saitcho/makerspace2025/certs/client1-authnID.key',
   MQTT_CA_CERT_PATH: '/home/saitcho/makerspace2025/certs/root_ca.crt',
-  MQTT_CLIENT_ID: 'cert-service-monitor'
+  MQTT_CLIENT_ID: 'cert-service-monitor',
+  MQTT_MONITOR_TOPIC: 'devices/bitnet/messages'
 } as const;
 
 export const CONFIG: ServiceConfig = {
@@ -68,7 +70,8 @@ export const CONFIG: ServiceConfig = {
     clientCertContent: process.env.MQTT_CLIENT_CERT_CONTENT || '',
     clientKeyContent: process.env.MQTT_CLIENT_KEY_CONTENT || '',
     caCertContent: process.env.MQTT_CA_CERT_CONTENT || '',
-    clientId: process.env.MQTT_CLIENT_ID || DEFAULT_VALUES.MQTT_CLIENT_ID
+    clientId: process.env.MQTT_CLIENT_ID || DEFAULT_VALUES.MQTT_CLIENT_ID,
+    monitorTopic: process.env.MQTT_MONITOR_TOPIC || DEFAULT_VALUES.MQTT_MONITOR_TOPIC
   }
 };
 

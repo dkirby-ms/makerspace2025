@@ -20,9 +20,9 @@ const eventGridManager = new EventGridClientManager(
 let mqttMonitor: MqttTopicMonitor | null = null;
 
 // Initialize MQTT monitor
-async function initializeMqttMonitor(): Promise<void> {
+async function initializeMqttMonitor(): Promise<MqttTopicMonitor | null> {
   if (mqttMonitor || !CONFIG.mqtt.brokerHost) {
-    return; // Already initialized or no broker configured
+    return mqttMonitor; // Already initialized or no broker configured
   }
 
   try {
@@ -40,15 +40,15 @@ async function initializeMqttMonitor(): Promise<void> {
       // Check if certificate files exist
       if (!fs.existsSync(CONFIG.mqtt.clientCertPath)) {
         console.warn(`MQTT client certificate not found at ${CONFIG.mqtt.clientCertPath}`);
-        return;
+        return null;
       }
       if (!fs.existsSync(CONFIG.mqtt.clientKeyPath)) {
         console.warn(`MQTT client key not found at ${CONFIG.mqtt.clientKeyPath}`);
-        return;
+        return null;
       }
       if (!fs.existsSync(CONFIG.mqtt.caCertPath)) {
         console.warn(`MQTT CA certificate not found at ${CONFIG.mqtt.caCertPath}`);
-        return;
+        return null;
       }
 
       // Read certificate files
@@ -67,10 +67,23 @@ async function initializeMqttMonitor(): Promise<void> {
     );
 
     await mqttMonitor.connect();
+    
+    // Automatically subscribe to the configured monitor topic
+    if (CONFIG.mqtt.monitorTopic) {
+      try {
+        await mqttMonitor.subscribeToTopic(CONFIG.mqtt.monitorTopic);
+        console.log(`Automatically subscribed to monitor topic: ${CONFIG.mqtt.monitorTopic}`);
+      } catch (error) {
+        console.error(`Failed to subscribe to monitor topic ${CONFIG.mqtt.monitorTopic}:`, error);
+      }
+    }
+    
     console.log('MQTT monitor initialized successfully');
+    return mqttMonitor;
   } catch (error) {
     console.error('Failed to initialize MQTT monitor:', error);
     mqttMonitor = null;
+    return null;
   }
 }
 
@@ -88,7 +101,8 @@ router.get('/topics', asyncHandler(async (req: Request, res: Response) => {
     const templateData = {
       topicSpaces,
       permissionBindings,
-      eventGridNamespace: CONFIG.eventGrid.namespaceName
+      eventGridNamespace: CONFIG.eventGrid.namespaceName,
+      monitorTopic: CONFIG.mqtt.monitorTopic
     };
 
     const html = HtmlTemplates.generateTopicsPage(templateData);
@@ -117,48 +131,6 @@ router.get('/api/topic/:topicName/messages', asyncHandler(async (req: Request, r
   }
 }));
 
-// Subscribe to topic
-router.post('/api/topic/:topicName/subscribe', asyncHandler(async (req: Request, res: Response) => {
-  const { topicName } = req.params;
-
-  try {
-    if (!mqttMonitor) {
-      await initializeMqttMonitor();
-    }
-
-    if (!mqttMonitor) {
-      return res.status(400).json({ error: 'MQTT monitor not available - check configuration and certificates' });
-    }
-
-    if (!mqttMonitor.isClientConnected()) {
-      return res.status(400).json({ error: 'MQTT client not connected' });
-    }
-
-    await mqttMonitor.subscribeToTopic(topicName);
-    res.json({ success: true, message: `Subscribed to ${topicName}` });
-  } catch (error: any) {
-    console.error('Failed to subscribe to topic:', error);
-    res.status(500).json(formatErrorResponse(error, 'Failed to subscribe to topic'));
-  }
-}));
-
-// Unsubscribe from topic
-router.delete('/api/topic/:topicName/subscribe', asyncHandler(async (req: Request, res: Response) => {
-  const { topicName } = req.params;
-
-  try {
-    if (!mqttMonitor || !mqttMonitor.isClientConnected()) {
-      return res.status(400).json({ error: 'MQTT monitor not connected' });
-    }
-
-    await mqttMonitor.unsubscribeFromTopic(topicName);
-    res.json({ success: true, message: `Unsubscribed from ${topicName}` });
-  } catch (error: any) {
-    console.error('Failed to unsubscribe from topic:', error);
-    res.status(500).json(formatErrorResponse(error, 'Failed to unsubscribe from topic'));
-  }
-}));
-
 // Get MQTT connection status
 router.get('/api/mqtt/status', asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -184,6 +156,6 @@ router.get('/api/mqtt/status', asyncHandler(async (req: Request, res: Response) 
   }
 }));
 
-// Export MQTT monitor for use in other modules
-export { mqttMonitor };
+// Export MQTT monitor and initialization function for use in other modules
+export { mqttMonitor, initializeMqttMonitor };
 export { router as topicRoutes };

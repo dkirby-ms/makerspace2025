@@ -372,6 +372,27 @@ body {
     align-items: center;
 }
 
+.monitor-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    width: 100%;
+}
+
+.monitor-info span {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.monitor-info code {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85em;
+}
+
 .topic-input {
     flex: 1;
     padding: 10px;

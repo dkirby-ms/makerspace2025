@@ -2,7 +2,6 @@
  * Topics page JavaScript functionality with WebSocket support
  */
 
-let currentTopic = '';
 let ws = null;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -60,79 +59,6 @@ function updateConnectionStatus(connected) {
             statusEl.textContent = 'Disconnected';
             statusEl.className = 'connection-status status-disconnected';
         }
-    }
-}
-
-async function subscribeToTopic() {
-    const topicInput = document.getElementById('topic-input');
-    const topic = topicInput.value.trim();
-    
-    if (!topic) {
-        alert('Please enter a topic to subscribe to');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/topic/${encodeURIComponent(topic)}/subscribe`, {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            currentTopic = topic;
-            document.getElementById('subscribe-btn').disabled = true;
-            document.getElementById('unsubscribe-btn').disabled = false;
-            document.getElementById('topic-input').disabled = true;
-            
-            // Clear previous messages
-            clearMessages();
-            
-            // Load existing messages
-            loadTopicMessages(topic);
-        } else {
-            alert(`Failed to subscribe: ${result.error}`);
-        }
-    } catch (error) {
-        alert(`Error subscribing to topic: ${error.message}`);
-    }
-}
-
-async function unsubscribeFromTopic() {
-    if (!currentTopic) return;
-
-    try {
-        const response = await fetch(`/api/topic/${encodeURIComponent(currentTopic)}/subscribe`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            currentTopic = '';
-            document.getElementById('subscribe-btn').disabled = false;
-            document.getElementById('unsubscribe-btn').disabled = true;
-            document.getElementById('topic-input').disabled = false;
-        } else {
-            alert(`Failed to unsubscribe: ${result.error}`);
-        }
-    } catch (error) {
-        alert(`Error unsubscribing from topic: ${error.message}`);
-    }
-}
-
-async function loadTopicMessages(topic) {
-    try {
-        const response = await fetch(`/api/topic/${encodeURIComponent(topic)}/messages`);
-        const result = await response.json();
-        
-        if (response.ok && result.messages) {
-            result.messages.forEach(message => {
-                addMessageToList(message);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading topic messages:', error);
     }
 }
 

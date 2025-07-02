@@ -7,6 +7,7 @@ export interface TopicsPageData {
   topicSpaces: any[];
   permissionBindings: any[];
   eventGridNamespace: string;
+  monitorTopic: string;
 }
 
 export class HtmlTemplates {
@@ -166,10 +167,10 @@ export class HtmlTemplates {
         <div class="messages-section">
             <h2>📨 Live Messages <span id="connection-status" class="connection-status status-disconnected">Disconnected</span></h2>
             <div class="message-monitor">
-                <input type="text" id="topic-input" class="topic-input" placeholder="Enter topic to monitor (e.g., devices/+/telemetry)" />
-                <button id="subscribe-btn" class="monitor-btn" onclick="subscribeToTopic()">Subscribe</button>
-                <button id="unsubscribe-btn" class="monitor-btn" onclick="unsubscribeFromTopic()" disabled>Unsubscribe</button>
-                <button onclick="clearMessages()" class="monitor-btn" style="background: #ff9800;">Clear</button>
+                <div class="monitor-info">
+                    <span>Monitoring topic: <code>${data.monitorTopic}</code></span>
+                    <button onclick="clearMessages()" class="monitor-btn" style="background: #ff9800;">Clear</button>
+                </div>
             </div>
             <div id="messages-list" class="messages-list">
                 <div style="padding: 20px; text-align: center; color: #666;">No messages yet</div>

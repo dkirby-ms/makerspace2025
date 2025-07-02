@@ -37,7 +37,7 @@ export class MqttTopicMonitor extends EventEmitter {
         cert: this.clientCert,
         key: this.clientKey,
         ca: this.caCert,
-        rejectUnauthorized: true,
+        rejectUnauthorized: false,
         keepalive: 60,
         clean: true,
         reconnectPeriod: 5000,

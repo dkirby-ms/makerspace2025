@@ -9,7 +9,7 @@ import { CONFIG, validateConfig } from './config';
 import { routes } from './routes';
 import { errorHandler } from './middleware';
 import { initializeCa } from './services';
-import { mqttMonitor } from './routes/topics';
+import { mqttMonitor, initializeMqttMonitor } from './routes/topics';
 
 const app = express();
 const PORT = CONFIG.port;
@@ -166,7 +166,7 @@ async function startServer(): Promise<void> {
     await initializeCa();
     
     // Start server after CA is ready
-    server.listen(PORT, () => {
+    server.listen(PORT, async () => {
       console.log(`🚀 Makerspace Certificate Service running on port ${PORT}`);
       console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔐 Event Grid Namespace: ${CONFIG.eventGrid.namespaceName}`);
@@ -174,7 +174,7 @@ async function startServer(): Promise<void> {
       console.log(`✅ CA initialized and ready for device registration`);
       
       // Set up MQTT message forwarding after server is started
-      setupMqttMessageForwarding();
+      await setupMqttMessageForwarding();
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -183,18 +183,23 @@ async function startServer(): Promise<void> {
 }
 
 // Set up MQTT message forwarding to WebSocket clients
-function setupMqttMessageForwarding(): void {
-  // Wait a bit for the routes to be loaded and MQTT monitor to be available
-  setTimeout(() => {
-    if (mqttMonitor) {
-      mqttMonitor.on('message', (mqttMessage) => {
+async function setupMqttMessageForwarding(): Promise<void> {
+  try {
+    console.log('🔄 Initializing MQTT monitor for WebSocket forwarding...');
+    const monitor = await initializeMqttMonitor();
+    
+    if (monitor) {
+      monitor.on('message', (mqttMessage) => {
+        console.log('📨 Broadcasting MQTT message to WebSocket clients:', mqttMessage.topic);
         broadcastMqttMessage(mqttMessage);
       });
       console.log('🔗 MQTT message forwarding to WebSocket clients enabled');
     } else {
       console.log('⚠️ MQTT monitor not available - real-time messages disabled');
     }
-  }, 1000);
+  } catch (error) {
+    console.error('❌ Failed to set up MQTT message forwarding:', error);
+  }
 }
 
 // Start the application
