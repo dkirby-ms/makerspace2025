@@ -1,7 +1,7 @@
 #!/bin/bash
 # Complete deployment script for Makerspace IoT Certificate Management System
 # This script generates certificates first, then deploys Azure resources with certificates included
-
+# blash
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
