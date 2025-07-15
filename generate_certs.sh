@@ -12,7 +12,7 @@ PROVISIONER_NAME="Makerspace2025Provisioner"
 
 # Parse command line arguments
 CA_PASSWORD=""
-while [[ $# -gt 0 ]]; do
+while [[ $# -gt 0 ]]; do 
     case $1 in
         --password)
             CA_PASSWORD="$2"
