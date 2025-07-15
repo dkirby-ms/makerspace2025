@@ -1,5 +1,6 @@
 #!/bin/bash
 # Certificate generation script for MQTT TLS authentication using step-cli
+#Agams's Change
 
 set -e
 
