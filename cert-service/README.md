@@ -16,7 +16,7 @@ npm run dev
 # Run tests
 npm test
 
-# Build for production
+# Build for production# Build for production
 npm run build
 ```
 
@@ -60,3 +60,5 @@ docker run -p 3000:3000 cert-service
 
 ## Deployment
 The service deploys automatically as part of the infrastructure template to Azure App Service with container support.
+
+# Test 
