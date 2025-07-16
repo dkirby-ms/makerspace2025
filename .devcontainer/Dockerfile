@@ -16,9 +16,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         mosquitto-clients \
         python3 \
         python3-venv \
-        python3-pip \
-    && ln -s /usr/bin/python3 /usr/bin/python \
-    && ln -s /usr/bin/pip3 /usr/bin/pip
+        python3-pip
 
 # Install step-cli
 RUN wget -O /tmp/step.deb https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.25.2/step-cli_0.25.2_amd64.deb \
