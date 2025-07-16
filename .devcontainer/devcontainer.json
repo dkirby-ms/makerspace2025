@@ -1,0 +1,70 @@
+{
+  "name": "Makerspace 2025",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers-extra/features/step-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-azuretools.vscode-bicep",
+        "ms-vscode.azurecli",
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-azuretools.vscode-azureappservice",
+        "ms-azuretools.vscode-azurecontainerapps",
+        "ms-vscode.vscode-json",
+        "esbenp.prettier-vscode",
+        "ms-vscode.test-adapter-converter",
+        "ms-vscode.js-debug",
+        "bradlc.vscode-tailwindcss",
+        "ms-playwright.playwright"
+      ],
+      "settings": {
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "editor.formatOnSave": true,
+        "files.exclude": {
+          "**/node_modules": true,
+          "**/coverage": true,
+          "**/.git": true
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 8883, 8080],
+  "portsAttributes": {
+    "3000": {
+      "label": "Certificate Service",
+      "onAutoForward": "notify"
+    },
+    "8883": {
+      "label": "MQTT Broker",
+      "onAutoForward": "silent"
+    },
+    "8080": {
+      "label": "Development Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": ".devcontainer/setup.sh",
+  
+  "mounts": [
+    "source=${localWorkspaceFolder}/.env.test,target=/workspace/.env.test,type=bind"
+  ],
+
+  "containerEnv": {
+    "SHELL": "/bin/bash"
+  },
+
+  "remoteUser": "node"
+}
