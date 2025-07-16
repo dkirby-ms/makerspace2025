@@ -1,5 +1,7 @@
+
 # Use the official TypeScript/Node.js development container
-FROM mcr.microsoft.com/devcontainers/typescript-node:1-22-bullseye
+FROM mcr.microsoft.com/devcontainers/typescript-node:1-22-bullseye AS dev_container_auto_added_stage_label
+
 
 # Install additional system packages
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
