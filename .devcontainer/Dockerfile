@@ -13,6 +13,11 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         mosquitto \
         mosquitto-clients
 
+# Install step-cli
+RUN wget -O /tmp/step.deb https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.25.2/step-cli_0.25.2_amd64.deb \
+    && dpkg -i /tmp/step.deb \
+    && rm /tmp/step.deb
+
 # Clean up
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 

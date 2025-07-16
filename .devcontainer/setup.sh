@@ -4,15 +4,13 @@ set -e
 
 echo "Setting up Makerspace 2025 development environment..."
 
-# Verify step-cli is available (installed via devcontainer feature)
+# Verify step-cli is available (installed via Dockerfile)
 echo "Verifying step-cli installation..."
 if command -v step &> /dev/null; then
     echo "step-cli is available: $(step version)"
 else
-    echo "Warning: step-cli not found, installing manually..."
-    wget -O step.deb https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.25.2/step-cli_0.25.2_amd64.deb
-    sudo dpkg -i step.deb
-    rm step.deb
+    echo "Error: step-cli not found"
+    exit 1
 fi
 
 # Verify mosquitto is available (installed via Dockerfile)
@@ -20,9 +18,8 @@ echo "Verifying mosquitto installation..."
 if command -v mosquitto_pub &> /dev/null; then
     echo "mosquitto is available"
 else
-    echo "Warning: mosquitto not found, installing..."
-    sudo apt-get update
-    sudo apt-get install -y mosquitto mosquitto-clients
+    echo "Error: mosquitto not found"
+    exit 1
 fi
 
 # Verify Node.js version
