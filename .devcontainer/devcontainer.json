@@ -55,7 +55,7 @@
     }
   },
 
-  "postCreateCommand": ".devcontainer/setup.sh",
+  "postCreateCommand": "chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh",
   
   "mounts": [
     "source=${localWorkspaceFolder}/.env.test,target=/workspace/.env.test,type=bind"
