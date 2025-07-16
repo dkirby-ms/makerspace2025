@@ -9,7 +9,7 @@
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers-extra/features/step-cli:1": {}
+    "ghcr.io/jitesoft/step-cli:v0.28.7": {}
   },
 
   "customizations": {
