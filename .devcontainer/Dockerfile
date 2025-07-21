@@ -18,8 +18,15 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         python3-venv \
         python3-pip
 
-# Install step-cli
-RUN wget -O /tmp/step.deb https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.25.2/step-cli_0.25.2_amd64.deb \
+# Install step-cli with architecture-specific logic
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+    wget -O /tmp/step.deb https://dl.smallstep.com/gh-release/cli/gh-release-header/v0.28.7/step-cli_0.28.7-1_amd64.deb; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+    wget -O /tmp/step.deb https://dl.smallstep.com/gh-release/cli/gh-release-header/v0.28.7/step-cli_0.28.7-1_arm64.deb; \
+    else \
+    echo "Unsupported architecture: $TARGETARCH" && exit 1; \
+    fi \
     && dpkg -i /tmp/step.deb \
     && rm /tmp/step.deb
 
